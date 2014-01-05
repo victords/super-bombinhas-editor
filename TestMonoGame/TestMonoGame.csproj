@@ -38,22 +38,22 @@
     <Reference Include="System.Core" />
     <Reference Include="MonoGame.Framework" />
     <Reference Include="AGL">
-      <HintPath>..\..\..\aleva\agl-mono\AGL\bin\Release\AGL.dll</HintPath>
+      <HintPath>..\..\agl-mono\AGL.Forms\bin\Release\AGL.dll</HintPath>
     </Reference>
     <Reference Include="AGL.Forms">
-      <HintPath>..\..\..\aleva\agl-mono\AGL.Forms\bin\Release\AGL.Forms.dll</HintPath>
+      <HintPath>..\..\agl-mono\AGL.Forms\bin\Release\AGL.Forms.dll</HintPath>
     </Reference>
     <Reference Include="AGL.Input">
-      <HintPath>..\..\..\aleva\agl-mono\AGL.Forms\bin\Release\AGL.Input.dll</HintPath>
+      <HintPath>..\..\agl-mono\AGL.Forms\bin\Release\AGL.Input.dll</HintPath>
     </Reference>
     <Reference Include="AGL.Text">
-      <HintPath>..\..\..\aleva\agl-mono\AGL.Forms\bin\Release\AGL.Text.dll</HintPath>
+      <HintPath>..\..\agl-mono\AGL.Forms\bin\Release\AGL.Text.dll</HintPath>
     </Reference>
     <Reference Include="AGL.Imaging">
-      <HintPath>..\..\..\aleva\agl-mono\AGL.Imaging\bin\Release\AGL.Imaging.dll</HintPath>
+      <HintPath>..\..\agl-mono\AGL.Imaging\bin\Release\AGL.Imaging.dll</HintPath>
     </Reference>
     <Reference Include="AGL.Mapping">
-      <HintPath>..\..\..\aleva\agl-mono\AGL.Mapping\bin\Release\AGL.Mapping.dll</HintPath>
+      <HintPath>..\..\agl-mono\AGL.Mapping\bin\Release\AGL.Mapping.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>

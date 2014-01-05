@@ -40,6 +40,7 @@ namespace TestMonoGame
         byte fieldFocused, currentTileset, elementIndex, rampIndex, tileType, currentBG, currentBBG;
         int qtTilesX, qtTilesY, currentElement;
 		int[] itemCodes = {7, 8, 12, 24, 31};
+		int[] obstCodes = {17, 21};
 		string[] tileNames = {"Wall", "Passable", "Background", "Foreground", "Hide"};
 
         DirectoryInfo dir;
@@ -282,7 +283,7 @@ namespace TestMonoGame
 						}
                         else
                         {
-							string symbol = IsItem(currentElement - 65) ? "$" : "@";
+							string symbol = IsItem(currentElement - 65) ? "$" : IsObst(currentElement - 65) ? "%" : "@";
                             objects[mapPos.X, mapPos.Y].Obj = symbol + (currentElement - 65);
                             if (paramString.Text != string.Empty)
                             	objects[mapPos.X, mapPos.Y].Obj += ":" + paramString.Text;
@@ -482,6 +483,14 @@ namespace TestMonoGame
 		{
 			for (int i = 0; i < itemCodes.Length; i++)
 				if (itemCodes[i] == code)
+					return true;
+			return false;
+		}
+
+		private bool IsObst (int code)
+		{
+			for (int i = 0; i < obstCodes.Length; i++)
+				if (obstCodes[i] == code)
 					return true;
 			return false;
 		}
@@ -705,7 +714,7 @@ namespace TestMonoGame
                 else if (s[0] == '!')
                 {
                     spriteBatch.Draw(elements[0], new Vector2(x + margin.X, y + margin.Y), Color.White);
-                    font.DrawString(s[1] + "", new Vector2(x + margin.X, y + margin.Y), false, Color.White, spriteBatch);
+                    font.DrawString(s[1] + "", new Vector2(x + margin.X, y + margin.Y), false, Color.Black, spriteBatch);
                 }
                 else
                 {
@@ -715,7 +724,7 @@ namespace TestMonoGame
                     {
                         string str = "";
                         for (int k = 1; k < code.Length; k++) str += code[k] + "\n";
-                        font.DrawString(str, new Vector2(x + margin.X + 5, y + margin.Y), false, Color.White, 0.3f, spriteBatch);
+                        font.DrawString(str, new Vector2(x + margin.X + 5, y + margin.Y), false, Color.Black, 0.3f, spriteBatch);
                     }
                 }
             }
