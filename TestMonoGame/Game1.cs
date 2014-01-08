@@ -40,7 +40,7 @@ namespace TestMonoGame
         byte fieldFocused, currentTileset, elementIndex, rampIndex, tileType, currentBG, currentBBG;
         int qtTilesX, qtTilesY, currentElement;
 		int[] itemCodes = {7, 8, 12, 24, 31};
-		int[] obstCodes = {17, 21};
+		int[] obstCodes = {17, 21, 23};
 		string[] tileNames = {"Wall", "Passable", "Background", "Foreground", "Hide"};
 
         DirectoryInfo dir;
