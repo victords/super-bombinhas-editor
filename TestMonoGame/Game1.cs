@@ -39,8 +39,8 @@ namespace TestMonoGame
         KeyboardHandler keyboard;
         byte fieldFocused, currentTileset, elementIndex, rampIndex, tileType, currentBG, currentBBG;
         int qtTilesX, qtTilesY, currentElement;
-		int[] itemCodes = {7, 8, 12, 24, 31};
-		int[] obstCodes = {17, 21, 23};
+		int[] switchCodes = {7, 8, 9, 12, 13, 20, 24, 26, 27, 31};
+		int[] obstCodes = {17, 21, 23, 25};
 		string[] tileNames = {"Wall", "Passable", "Background", "Foreground", "Hide"};
 
         DirectoryInfo dir;
@@ -283,7 +283,7 @@ namespace TestMonoGame
 						}
                         else
                         {
-							string symbol = IsItem(currentElement - 65) ? "$" : IsObst(currentElement - 65) ? "%" : "@";
+							string symbol = IsSwitch(currentElement - 65) ? "$" : IsObst(currentElement - 65) ? "%" : "@";
                             objects[mapPos.X, mapPos.Y].Obj = symbol + (currentElement - 65);
                             if (paramString.Text != string.Empty)
                             	objects[mapPos.X, mapPos.Y].Obj += ":" + paramString.Text;
@@ -479,10 +479,10 @@ namespace TestMonoGame
             }
         }
 
-		private bool IsItem (int code)
+		private bool IsSwitch (int code)
 		{
-			for (int i = 0; i < itemCodes.Length; i++)
-				if (itemCodes[i] == code)
+			for (int i = 0; i < switchCodes.Length; i++)
+				if (switchCodes[i] == code)
 					return true;
 			return false;
 		}
