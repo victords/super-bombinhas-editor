@@ -40,7 +40,7 @@ namespace TestMonoGame
         byte fieldFocused, currentTileset, elementIndex, rampIndex, tileType, currentBG, currentBBG;
         int qtTilesX, qtTilesY, currentElement;
 		int[] switchCodes = {7, 8, 9, 12, 13, 20, 24, 26, 27, 31};
-		int[] obstCodes = {17, 21, 23, 25};
+		int[] obstCodes = {17, 21, 23, 25, 32};
 		string[] tileNames = {"Wall", "Passable", "Background", "Foreground", "Hide"};
 
         DirectoryInfo dir;
@@ -192,7 +192,11 @@ namespace TestMonoGame
                 GetTex("Ball"),
                 GetTex("BallX"),
                 GetTex("Yaw"),
-                GetTex("Ekips")
+                GetTex("Ekips"),
+                GetTex("ForeWall"),
+                GetTex("Spec"),
+                GetTex("Faller"),
+                GetTex("Turner")
             };
             backgrounds = new Texture2D[5];
             backgrounds[0] = Content.Load<Texture2D>("Backgrounds/1.jpg");
