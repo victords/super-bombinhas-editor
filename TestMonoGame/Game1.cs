@@ -40,7 +40,6 @@ namespace TestMonoGame
         byte fieldFocused, currentTileset, elementIndex, rampIndex, tileType, currentBG, currentBBG;
         int qtTilesX, qtTilesY, currentElement;
 		int[] switchCodes = {7, 8, 9, 12, 13, 20, 24, 26, 27, 31};
-		int[] obstCodes = {17, 21, 23, 25, 32};
 		string[] tileNames = {"Wall", "Passable", "Background", "Foreground", "Hide"};
 
         DirectoryInfo dir;
@@ -287,7 +286,7 @@ namespace TestMonoGame
 						}
                         else
                         {
-							string symbol = IsSwitch(currentElement - 65) ? "$" : IsObst(currentElement - 65) ? "%" : "@";
+							string symbol = IsSwitch(currentElement - 65) ? "$" : "@";
                             objects[mapPos.X, mapPos.Y].Obj = symbol + (currentElement - 65);
                             if (paramString.Text != string.Empty)
                             	objects[mapPos.X, mapPos.Y].Obj += ":" + paramString.Text;
@@ -487,14 +486,6 @@ namespace TestMonoGame
 		{
 			for (int i = 0; i < switchCodes.Length; i++)
 				if (switchCodes[i] == code)
-					return true;
-			return false;
-		}
-
-		private bool IsObst (int code)
-		{
-			for (int i = 0; i < obstCodes.Length; i++)
-				if (obstCodes[i] == code)
 					return true;
 			return false;
 		}
