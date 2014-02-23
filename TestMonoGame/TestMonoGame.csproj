@@ -38,7 +38,7 @@
     <Reference Include="System.Core" />
     <Reference Include="MonoGame.Framework" />
     <Reference Include="AGL">
-      <HintPath>..\..\agl-mono\AGL.Forms\bin\Release\AGL.dll</HintPath>
+      <HintPath>..\..\agl-mono\AGL\bin\Release\AGL.dll</HintPath>
     </Reference>
     <Reference Include="AGL.Forms">
       <HintPath>..\..\agl-mono\AGL.Forms\bin\Release\AGL.Forms.dll</HintPath>
@@ -47,7 +47,7 @@
       <HintPath>..\..\agl-mono\AGL.Forms\bin\Release\AGL.Input.dll</HintPath>
     </Reference>
     <Reference Include="AGL.Text">
-      <HintPath>..\..\agl-mono\AGL.Forms\bin\Release\AGL.Text.dll</HintPath>
+      <HintPath>..\..\agl-mono\AGL.Text\bin\Release\AGL.Text.dll</HintPath>
     </Reference>
     <Reference Include="AGL.Imaging">
       <HintPath>..\..\agl-mono\AGL.Imaging\bin\Release\AGL.Imaging.dll</HintPath>
