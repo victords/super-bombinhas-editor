@@ -25,7 +25,7 @@ namespace TestMonoGame
         Texture2D empty, rect, selected, rampLeft, rampRight, hideTile;
         Texture2D[] tilesets, elements, backgrounds;
         Cell[,] objects;
-        List<string> ramps;
+        List<string> ramps, bgs;
         List<IntVector2> rampSizes;
         IntVector2 margin;
         Rectangle[] tiles;
@@ -33,14 +33,17 @@ namespace TestMonoGame
 
         ImageFont font;
         TextField name, tilesX, tilesY, openName, paramString;
-        Button generateMap, nextTileSet, nextElement, prevElement, nextType, nextBackground, nextBottomBG, saveFile, openFile, clear, gridOnOff;
+        Button generateMap, nextTileSet, nextElement, prevElement, nextType, nextExitType,
+			nextBackground, addBackground, removeBackground, saveFile, openFile, clear, gridOnOff;
 
         MouseHandler mouse;
         KeyboardHandler keyboard;
-        byte fieldFocused, currentTileset, elementIndex, rampIndex, tileType, currentBG, currentBBG;
-        int qtTilesX, qtTilesY, currentElement;
+        byte fieldFocused, currentTileset, elementIndex, rampIndex, tileType, currentBG;
+        int qtTilesX, qtTilesY, currentElement, exitType;
 		int[] switchCodes = {7, 8, 9, 12, 13, 20, 24, 26, 27, 31};
-		string[] tileNames = {"Wall", "Passable", "Background", "Foreground", "Hide"};
+		string[] tileNames = {"Wall", "Passable", "Background", "Foreground", "Hide"},
+			bgFiles = {"1.jpg", "2.png", "3.jpg", "4.jpg", "5.jpg"},
+			exitTypes = {"Acima", "Direita", "Abaixo", "Esquerda", "Nenhuma"};
 
         DirectoryInfo dir;
         string message, message2;
@@ -101,8 +104,11 @@ namespace TestMonoGame
 
             fieldFocused = 255;
             currentElement = 1;
-            currentBG = 1;
+			bgs = new List<string>();
+			currentBG = 0;
             grid = true;
+
+			exitType = 1;
 
             dir = new DirectoryInfo("/home/victor/aleva/super-bombinhas/data/stage");
             message = "";
@@ -124,7 +130,8 @@ namespace TestMonoGame
                 btnUp = BasicDrawer.GetOutlineGradientRectangle(192, 18, Color.DarkGray, Color.LightGray, Color.Black, GradientDirection.Vertical),
                 btnOver = BasicDrawer.GetOutlineGradientRectangle(192, 18, Color.LightGray, Color.White, Color.Black, GradientDirection.Vertical),
                 btnDown = BasicDrawer.GetOutlineGradientRectangle(192, 18, Color.Gray, Color.DarkGray, Color.Black, GradientDirection.Vertical);
-            
+			Texture2D[] btn = new[] { btnUp, btnOver, btnDown };
+
 			hideTile = GetTex("ForeWall");
 
 			name = new TextField(new Vector2(4, 25), new Rectangle(0, 0, 192, 18), field, new Vector2(1, 2), cursor, 
@@ -135,20 +142,21 @@ namespace TestMonoGame
                 new Color(Color.Blue, 100), new Vector2(2, 0), 3, font, GraphicsDevice);
             paramString = new TextField(new Vector2(4, 538), new Rectangle(0, 0, 192, 18), field, new Vector2(1, 2), cursor,
                 new Color(Color.Blue, 100), new Vector2(2, 0), 30, font, GraphicsDevice);
-            generateMap = new Button(new Vector2(4, 125), new Texture2D[] { btnUp, btnOver, btnDown }, "Gerar mapa", new Vector2(), true, font);
-            nextTileSet = new Button(new Vector2(4, 392), new Texture2D[] { btnUp, btnOver, btnDown }, "Próximo", new Vector2(), true, font);
-            nextType = new Button(new Vector2(4, 172), new Texture2D[] { btnUp, btnOver, btnDown }, "Próximo", new Vector2(), true, font);
-            nextElement = new Button(new Vector2(4, 500), new Texture2D[] { btnUp, btnOver, btnDown }, "Próximo", new Vector2(), true, font);
-            prevElement = new Button(new Vector2(4, 518), new Texture2D[] { btnUp, btnOver, btnDown }, "Anterior", new Vector2(), true, font);
-            saveFile = new Button(new Vector2(4, 580), new Texture2D[] { btnUp, btnOver, btnDown }, "Salvar", new Vector2(), true, font);
-            
+            generateMap = new Button(new Vector2(4, 125), btn, "Gerar mapa", new Vector2(), true, font);
+            nextTileSet = new Button(new Vector2(4, 392), btn, "Próximo", new Vector2(), true, font);
+            nextType = new Button(new Vector2(4, 172), btn, "Próximo", new Vector2(), true, font);
+            nextElement = new Button(new Vector2(4, 500), btn, "Próximo", new Vector2(), true, font);
+            prevElement = new Button(new Vector2(4, 518), btn, "Anterior", new Vector2(), true, font);
+			nextExitType = new Button(new Vector2(4, 588), btn, "Próximo", new Vector2(), true, font);
+            nextBackground = new Button(new Vector2(204, 560+120), btn, "Próximo", new Vector2(), true, font);
+            addBackground = new Button(new Vector2(204, 580+120), btn, "Adicionar", new Vector2(), true, font);
+            removeBackground = new Button(new Vector2(404, 580+120), btn, "Remover", new Vector2(), true, font);
+			saveFile = new Button(new Vector2(4, 645), btn, "Salvar", new Vector2(), true, font);
 			openName = new TextField(new Vector2(604, 560+120), new Rectangle(0, 0, 192, 18), field, new Vector2(1, 2), cursor,
                 new Color(Color.Blue, 100), new Vector2(2, 0), 30, font, GraphicsDevice);
-            nextBackground = new Button(new Vector2(204, 580+120), new Texture2D[] { btnUp, btnOver, btnDown }, "Próximo", new Vector2(), true, font);
-            nextBottomBG = new Button(new Vector2(404, 580+120), new Texture2D[] { btnUp, btnOver, btnDown }, "Próximo", new Vector2(), true, font);
-            openFile = new Button(new Vector2(604, 580+120), new Texture2D[] { btnUp, btnOver, btnDown }, "Abrir", new Vector2(), true, font);
-            clear = new Button(new Vector2(604, 455+126), new Texture2D[] { btnUp, btnOver, btnDown }, "Limpar", new Vector2(), true, font);
-            gridOnOff = new Button(new Vector2(604, 485+126), new Texture2D[] { btnUp, btnOver, btnDown }, "Grid on/off", new Vector2(), true, font);
+			openFile = new Button(new Vector2(604, 580+120), btn, "Abrir", new Vector2(), true, font);
+            clear = new Button(new Vector2(604, 455+126), btn, "Limpar", new Vector2(), true, font);
+            gridOnOff = new Button(new Vector2(604, 485+126), btn, "Grid on/off", new Vector2(), true, font);
             
 			empty = BasicDrawer.GetOutlineFilledRectangle(32, 32, Color.LightGray, Color.White);
             rect = BasicDrawer.GetHorizontalLine(1, Color.White);
@@ -197,12 +205,10 @@ namespace TestMonoGame
                 GetTex("Faller"),
                 GetTex("Turner")
             };
-            backgrounds = new Texture2D[5];
-            backgrounds[0] = Content.Load<Texture2D>("Backgrounds/1.jpg");
-            backgrounds[1] = Content.Load<Texture2D>("Backgrounds/1.png");
-            backgrounds[2] = Content.Load<Texture2D>("Backgrounds/2.jpg");
-            backgrounds[3] = Content.Load<Texture2D>("Backgrounds/3.jpg");
-            backgrounds[4] = Content.Load<Texture2D>("Backgrounds/4.jpg");
+            
+			backgrounds = new Texture2D[bgFiles.Length];
+			for (int i = 0; i < bgFiles.Length; i++)
+				backgrounds[i] = Content.Load<Texture2D>("Backgrounds/" + bgFiles[i]);
         }
         private Texture2D GetTex(string element)
         {
@@ -397,19 +403,28 @@ namespace TestMonoGame
                         currentElement = -(rampIndex + 1);
                     }
                 }
-                nextBackground.Update();
+                
+				nextExitType.Update();
+				if (nextExitType.Clicked)
+				{
+					exitType++;
+					if (exitType == exitTypes.Length) exitType = 0;
+				}
+
+				nextBackground.Update();
                 if (nextBackground.Clicked)
                 {
-                    if (currentBG == backgrounds.Length) currentBG = 1;
-                    else currentBG++;
+					currentBG++;
+                    if (currentBG == backgrounds.Length) currentBG = 0;
                 }
-                nextBottomBG.Update();
-                if (nextBottomBG.Clicked)
-                {
-                    if (currentBBG == backgrounds.Length) currentBBG = 0;
-                    else currentBBG++;
-                }
-                saveFile.Update();
+				addBackground.Update();
+				if (addBackground.Clicked && bgs.Count < 5)
+					bgs.Add((currentBG + 1) + "");
+				removeBackground.Update();
+				if (removeBackground.Clicked && bgs.Count > 0)
+					bgs.RemoveAt(0);
+                
+				saveFile.Update();
                 if (saveFile.Clicked)
                 {
                     FileInfo file = new FileInfo(dir.FullName + "/" + name.Text + ".sbs");
@@ -463,8 +478,7 @@ namespace TestMonoGame
                     openName.Text = ""; openName.Update();
                     currentElement = 1;
                     currentTileset = 0;
-                    currentBG = 1;
-                    currentBBG = 0;
+                    currentBG = 0;
                     qtTilesX = 300; qtTilesY = 300;
                     map = new OrtogonalMap(32, 32, qtTilesX, qtTilesY, new IntVector2(EDITOR_WIDTH, EDITOR_HEIGHT));
                     map.Camera.MinimumAllowedX = 0;
@@ -507,9 +521,12 @@ namespace TestMonoGame
         private void SaveFile(FileInfo file)
         {
             StreamWriter sw = file.CreateText();
-            string code = qtTilesX + "," + qtTilesY + ",1," + currentBG + "," + currentBBG + "," + (currentTileset + 1) + "#",
+            string code = qtTilesX + "," + qtTilesY + "," + exitType + "," + (currentTileset + 1) + "#",
                 lastElement = GetCellString(0, 0);
-            int count = 1;
+			for (int i = 0; i < bgs.Count - 1; i++)
+				code += bgs[i] + ",";
+			code += bgs[bgs.Count - 1] + "#";
+			int count = 1;
             for (int j = 0; j < qtTilesY; j++)
             {
                 for (int i = 0; i < qtTilesX; i++)
@@ -545,15 +562,21 @@ namespace TestMonoGame
         private void OpenFile(FileInfo file)
         {
             StreamReader sr = file.OpenText();
-            string[] all = sr.ReadLine().Split('#'), infos = all[0].Split(','), elms = all[1].Split(';');
-            qtTilesX = int.Parse(infos[0]); qtTilesY = int.Parse(infos[1]);
+            string[] all = sr.ReadLine().Split('#'), infos = all[0].Split(','), bgInfos = all[1].Split(','), elms = all[2].Split(';');
+			qtTilesX = int.Parse(infos[0]); qtTilesY = int.Parse(infos[1]); exitType = int.Parse (infos[2]);
             map = new OrtogonalMap(32, 32, qtTilesX, qtTilesY, new IntVector2(EDITOR_WIDTH, EDITOR_HEIGHT));
             map.Camera.MinimumAllowedX = 0;
             map.Camera.MaximumAllowedX = map.AbsoluteSize.X - EDITOR_WIDTH < 0 ? 0 : map.AbsoluteSize.X - EDITOR_WIDTH;
             map.Camera.MinimumAllowedY = 0;
             map.Camera.MaximumAllowedY = map.AbsoluteSize.Y - EDITOR_HEIGHT < 0 ? 0 : map.AbsoluteSize.Y - EDITOR_HEIGHT;
             objects = new Cell[qtTilesX, qtTilesY];
-            currentBG = byte.Parse(infos[3]); currentBBG = (byte)Math.Abs(int.Parse(infos[4])); currentTileset = (byte)(byte.Parse(infos[5]) - 1);
+            
+			bgs.Clear();
+			for (int k = 0; k < bgInfos.Length; k++)
+				bgs.Add(bgInfos[k]);
+			currentBG = 0;
+
+			currentTileset = (byte)(byte.Parse(infos[3]) - 1);
             int i = 0, j = 0;
             foreach (string e in elms)
             {
@@ -601,9 +624,9 @@ namespace TestMonoGame
 				}
             }
             ramps.Clear();
-            if (all[2] != string.Empty)
+            if (all[3] != string.Empty)
             {
-                string[] rmps = all[2].Split(';');
+                string[] rmps = all[3].Split(';');
                 foreach (string str in rmps) ramps.Add(str);
             }
             name.Text = openName.Text;
@@ -656,13 +679,15 @@ namespace TestMonoGame
             nextElement.Draw(spriteBatch);
             prevElement.Draw(spriteBatch);
             nextType.Draw(spriteBatch);
+            nextExitType.Draw(spriteBatch);
             nextBackground.Draw(spriteBatch);
-            nextBottomBG.Draw(spriteBatch);
+            addBackground.Draw(spriteBatch);
+            removeBackground.Draw(spriteBatch);
             saveFile.Draw(spriteBatch);
             openFile.Draw(spriteBatch);
             clear.Draw(spriteBatch);
             gridOnOff.Draw(spriteBatch);
-            font.DrawString(message, new Vector2(100, 555), true, spriteBatch);
+            font.DrawString(message, new Vector2(100, 620), true, spriteBatch);
             font.DrawString(message2, new Vector2(700, 530+126), true, spriteBatch);
             spriteBatch.Draw(tilesets[currentTileset], new Rectangle(4, 200, 192, 192), Color.White);
             font.DrawString(tileNames[tileType], new Vector2(100, 150), true, spriteBatch);
@@ -674,10 +699,14 @@ namespace TestMonoGame
             else if (currentElement <= 64)
                 spriteBatch.Draw(selected, new Vector2(4 + ((currentElement - 1) % 8) * 24, 200 + ((currentElement - 1) / 8) * 24), Color.White);
             else spriteBatch.Draw(selected, elementArea, Color.White);
-            spriteBatch.Draw(backgrounds[currentBG - 1], new Rectangle(244, 470+126, 100, 75), Color.White);
-            if (currentBBG == 0) font.DrawString("Nenhum", new Vector2(494, 490+126), true, spriteBatch);
-            else spriteBatch.Draw(backgrounds[currentBBG - 1], new Rectangle(444, 470+126, 100, 75), Color.White);
-            if (mouse.IsCursorOver(editableArea))
+            
+			font.DrawString("Saída: " + exitTypes[exitType], new Vector2(4, 568), false, spriteBatch);
+
+			spriteBatch.Draw(backgrounds[currentBG], new Rectangle(204, 580, 192, 100), Color.White);
+			for (int i = 0; i < bgs.Count; i++)
+				font.DrawString(bgs[i], new Vector2(404, 580 + i * 20), false, spriteBatch);
+
+			if (mouse.IsCursorOver(editableArea))
                 font.DrawString(map.GetPosition(mouse.Position - margin).ToString(), mouse.Position + new Vector2(5, 0), false, spriteBatch);
             spriteBatch.End();
             base.Draw(gameTime);
