@@ -26,19 +26,18 @@ namespace TestMonoGame
         Texture2D[] tilesets, elements, backgrounds;
         Cell[,] objects;
         List<string> ramps, bgs;
-        List<IntVector2> rampSizes;
         IntVector2 margin;
         Rectangle[] tiles;
         Rectangle editableArea, elementArea, rampArea;
 
         ImageFont font;
-        TextField name, tilesX, tilesY, openName, paramString;
+        TextField name, tilesX, tilesY, openName, paramString, rampArgs;
         Button generateMap, nextTileSet, nextElement, prevElement, nextType, nextExitType,
 			nextBackground, addBackground, removeBackground, saveFile, openFile, clear, gridOnOff;
 
         MouseHandler mouse;
         KeyboardHandler keyboard;
-        byte fieldFocused, currentTileset, elementIndex, rampIndex, tileType, currentBG;
+        byte fieldFocused, currentTileset, elementIndex, tileType, currentBG;
         int qtTilesX, qtTilesY, currentElement, exitType;
 		int[] switchCodes = {7, 8, 9, 12, 13, 20, 24, 26, 27, 31};
 		string[] tileNames = {"Wall", "Passable", "Background", "Foreground", "Hide"},
@@ -93,13 +92,7 @@ namespace TestMonoGame
 
             editableArea = new Rectangle(200, 0, EDITOR_WIDTH, EDITOR_HEIGHT);
             elementArea = new Rectangle(26, 435, 64, 64);
-            rampArea = new Rectangle(105, 435, 64, 64);
-            rampSizes = new List<IntVector2>();
-            rampSizes.Add(new IntVector2(1, 1));
-            rampSizes.Add(new IntVector2(2, 2));
-            rampSizes.Add(new IntVector2(3, 3));
-            rampSizes.Add(new IntVector2(3, 2));
-            rampSizes.Add(new IntVector2(5, 5));
+            rampArea = new Rectangle(118, 435, 64, 64);
             ramps = new List<string>();
 
             fieldFocused = 255;
@@ -140,9 +133,11 @@ namespace TestMonoGame
                 new Color(Color.Blue, 100), new Vector2(2, 0), 3, font, GraphicsDevice);
             tilesY = new TextField(new Vector2(4, 105), new Rectangle(0, 0, 192, 18), field, new Vector2(1, 2), cursor,
                 new Color(Color.Blue, 100), new Vector2(2, 0), 3, font, GraphicsDevice);
-            paramString = new TextField(new Vector2(4, 538), new Rectangle(0, 0, 192, 18), field, new Vector2(1, 2), cursor,
+            paramString = new TextField(new Vector2(4, 536), new Rectangle(0, 0, 192, 18), field, new Vector2(1, 2), cursor,
                 new Color(Color.Blue, 100), new Vector2(2, 0), 30, font, GraphicsDevice);
-            generateMap = new Button(new Vector2(4, 125), btn, "Gerar mapa", new Vector2(), true, font);
+            rampArgs = new TextField(new Vector2(4, 554), new Rectangle(0, 0, 192, 18), field, new Vector2(1, 2), cursor,
+			    new Color(Color.Blue, 100), new Vector2(2, 0), 3, font, GraphicsDevice);
+			generateMap = new Button(new Vector2(4, 125), btn, "Gerar mapa", new Vector2(), true, font);
             nextTileSet = new Button(new Vector2(4, 392), btn, "Próximo", new Vector2(), true, font);
             nextType = new Button(new Vector2(4, 172), btn, "Próximo", new Vector2(), true, font);
             nextElement = new Button(new Vector2(4, 500), btn, "Próximo", new Vector2(), true, font);
@@ -242,11 +237,15 @@ namespace TestMonoGame
                             fieldFocused = 3;
                         else if (mouse.IsCursorOver(paramString.ActiveArea))
                             fieldFocused = 4;
+                        else if (mouse.IsCursorOver(rampArgs.ActiveArea))
+                            fieldFocused = 5;
                         else if (mouse.IsCursorOver(editableArea))
                         {
-                            IntVector2 mapPos = map.GetPosition(mouse.Position - margin);
-                            if (currentElement < 0) ramps.Add((rampIndex % 2 == 0 ? "l" : "r") + rampSizes[(rampIndex / 2)].X +
-                                rampSizes[(rampIndex / 2)].Y + ":" + mapPos.X + "," + mapPos.Y); //ramps
+							if (currentElement < 0) // ramp
+							{
+								IntVector2 mapPos = map.GetPosition(mouse.Position - margin);
+	                            ramps.Add(rampArgs.Text + ":" + mapPos.X + "," + mapPos.Y);
+							}
                         }
                         else
                         {
@@ -259,7 +258,7 @@ namespace TestMonoGame
                             if (mouse.IsCursorOver(elementArea))
                                 currentElement = 65 + elementIndex;
                             else if (mouse.IsCursorOver(rampArea))
-                                currentElement = -(rampIndex + 1);
+                                currentElement = -1;
                             fieldFocused = 255;
                         }
                     }
@@ -306,11 +305,16 @@ namespace TestMonoGame
                         IntVector2 mapPos = map.GetPosition(mouse.Position - margin);
                         foreach (string ramp in ramps)
                         {
-                            int x = int.Parse(ramp.Split(':')[1].Split(',')[0]), y = int.Parse(ramp.Split(':')[1].Split(',')[1]);
-                            IntVector2 size = rampSizes[int.Parse(ramp[1] + "") - 1] * 32, 
-                                pos = map.GetScreenPosition(new IntVector2(x, y)) + margin;
-                            if (mouse.IsCursorOver(new Rectangle(pos.X, pos.Y, size.X, size.Y)))
-                            { ramps.Remove(ramp); break; }
+                            int x = int.Parse(ramp.Split(':')[1].Split(',')[0]),
+								y = int.Parse(ramp.Split(':')[1].Split(',')[1]),
+								w = int.Parse(ramp[1] + "") * 32,
+								h = int.Parse(ramp[2] + "") * 32;
+                            IntVector2 pos = map.GetScreenPosition(new IntVector2(x, y)) + margin;
+                            if (mouse.IsCursorOver(new Rectangle(pos.X, pos.Y, w, h)))
+                            {
+								ramps.Remove(ramp);
+								break;
+							}
                         }
                         objects[mapPos.X, mapPos.Y] = new Cell();
                     }
@@ -323,6 +327,7 @@ namespace TestMonoGame
                 else if (fieldFocused == 2) tilesY.Update();
                 else if (fieldFocused == 3) openName.Update();
                 else if (fieldFocused == 4) paramString.Update();
+                else if (fieldFocused == 5) rampArgs.Update();
                 else
                 {
                     keyboard.Update();
@@ -374,34 +379,16 @@ namespace TestMonoGame
                 nextElement.Update();
                 if (nextElement.Clicked)
                 {
-                    if (currentElement > 0)
-                    {
-                        if (elementIndex == elements.Length - 1) elementIndex = 0;
-                        else elementIndex++;
-                        currentElement = 65 + elementIndex;
-                    }
-                    else
-                    {
-                        if (rampIndex == 2 * rampSizes.Count - 1) rampIndex = 0;
-                        else rampIndex++;
-                        currentElement = -(rampIndex + 1);
-                    }
+                    if (elementIndex == elements.Length - 1) elementIndex = 0;
+                    else elementIndex++;
+                    currentElement = 65 + elementIndex;
                 }
                 prevElement.Update();
                 if (prevElement.Clicked)
                 {
-                    if (currentElement > 0)
-                    {
-                        if (elementIndex == 0) elementIndex = (byte)(elements.Length - 1);
-                        else elementIndex--;
-                        currentElement = 65 + elementIndex;
-                    }
-                    else
-                    {
-                        if (rampIndex == 0) rampIndex = (byte)(2 * rampSizes.Count - 1);
-                        else rampIndex--;
-                        currentElement = -(rampIndex + 1);
-                    }
+                    if (elementIndex == 0) elementIndex = (byte)(elements.Length - 1);
+                    else elementIndex--;
+                    currentElement = 65 + elementIndex;
                 }
                 
 				nextExitType.Update();
@@ -674,6 +661,7 @@ namespace TestMonoGame
             tilesY.Draw(spriteBatch);
             openName.Draw(spriteBatch);
             paramString.Draw(spriteBatch);
+			rampArgs.Draw(spriteBatch);
             generateMap.Draw(spriteBatch);
             nextTileSet.Draw(spriteBatch);
             nextElement.Draw(spriteBatch);
@@ -693,8 +681,7 @@ namespace TestMonoGame
             font.DrawString(tileNames[tileType], new Vector2(100, 150), true, spriteBatch);
             spriteBatch.Draw(elements[elementIndex], new Vector2(26 + (64 - elements[elementIndex].Width) / 2,
                 435 + (64 - elements[elementIndex].Height) / 2), Color.White);
-            spriteBatch.Draw(rampIndex % 2 == 0 ? rampLeft : rampRight, rampArea, Color.White);
-            font.DrawString(rampSizes[rampIndex / 2].X + "x" + rampSizes[rampIndex / 2].Y, new Vector2(rampArea.X + 10, rampArea.Y + 10), false, spriteBatch);
+            spriteBatch.Draw(rampLeft, rampArea, Color.White);
             if (currentElement < 0) spriteBatch.Draw(selected, rampArea, Color.White);
             else if (currentElement <= 64)
                 spriteBatch.Draw(selected, new Vector2(4 + ((currentElement - 1) % 8) * 24, 200 + ((currentElement - 1) / 8) * 24), Color.White);
