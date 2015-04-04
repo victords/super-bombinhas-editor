@@ -39,7 +39,7 @@ namespace TestMonoGame
         KeyboardHandler keyboard;
         byte fieldFocused, currentTileset, elementIndex, tileType, currentBG;
         int qtTilesX, qtTilesY, currentElement, exitType;
-		int[] switchCodes = {7, 8, 9, 12, 13, 20, 24, 26, 27, 31};
+		int[] switchCodes = {7, 8, 9, 12, 13, 20, 24, 26, 27};
 		string[] tileNames = {"Wall", "Passable", "Background", "Foreground", "Hide"},
 			bgFiles = {"1.jpg", "2.png", "3.jpg", "4.jpg", "5.jpg"},
 			exitTypes = {"Acima", "Direita", "Abaixo", "Esquerda", "Nenhuma"};
@@ -170,8 +170,8 @@ namespace TestMonoGame
                 GetTex("PedraFogo1"),
                 GetTex("BombieE1"),
                 GetTex("SprinnyE1"),
-                GetTex("SprinnyE2"),
-                GetTex("SprinnyE3"),
+                GetTex("Spring"),
+                GetTex("Goal"),
                 GetTex("Life"),
                 GetTex("Key"),
                 GetTex("Door"),
@@ -426,6 +426,8 @@ namespace TestMonoGame
                     {
                         if (name.Text == string.Empty)
                             message = "Dê um nome à fase!";
+						else if (bgs.Count == 0)
+							message = "Escolha ao menos\num background!";
                         else
                         {
                             if (file.Exists)
@@ -675,7 +677,7 @@ namespace TestMonoGame
             openFile.Draw(spriteBatch);
             clear.Draw(spriteBatch);
             gridOnOff.Draw(spriteBatch);
-            font.DrawString(message, new Vector2(100, 620), true, spriteBatch);
+            font.DrawString(message, new Vector2(100, 610), true, spriteBatch);
             font.DrawString(message2, new Vector2(700, 530+126), true, spriteBatch);
             spriteBatch.Draw(tilesets[currentTileset], new Rectangle(4, 200, 192, 192), Color.White);
             font.DrawString(tileNames[tileType], new Vector2(100, 150), true, spriteBatch);

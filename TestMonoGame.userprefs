@@ -1,8 +1,8 @@
 ﻿<Properties>
-  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug|x86" />
+  <MonoDevelop.Ide.Workspace ActiveConfiguration="Release|x86" />
   <MonoDevelop.Ide.Workbench ActiveDocument="TestMonoGame/Game1.cs">
     <Files>
-      <File FileName="TestMonoGame/Game1.cs" Line="279" Column="1" />
+      <File FileName="TestMonoGame/Game1.cs" Line="173" Column="31" />
     </Files>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>
