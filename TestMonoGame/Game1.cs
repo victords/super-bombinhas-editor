@@ -175,7 +175,7 @@ namespace TestMonoGame
                 GetTex("Life"),
                 GetTex("Key"),
                 GetTex("Door"),
-                GetTex("DoorLocked"),
+                GetTex("SpecGate"),
                 GetTex("DoorExit"),
                 GetTex("GunPowder"),
                 GetTex("Crack"),
@@ -414,7 +414,7 @@ namespace TestMonoGame
 				saveFile.Update();
                 if (saveFile.Clicked)
                 {
-                    FileInfo file = new FileInfo(dir.FullName + "/" + name.Text + ".sbs");
+                    FileInfo file = new FileInfo(dir.FullName + "/" + name.Text);
                     if (confirm)
                     {
                         confirm = false;
@@ -449,7 +449,7 @@ namespace TestMonoGame
                     if (openName.Text == string.Empty) message2 = "Digite o nome!";
                     else
                     {
-                        FileInfo file = new FileInfo(dir.FullName + "/" + openName.Text + ".sbs");
+                        FileInfo file = new FileInfo(dir.FullName + "/" + openName.Text);
                         if (!file.Exists) message2 = "Não existe!";
                         else
                         {
