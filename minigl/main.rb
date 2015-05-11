@@ -63,7 +63,27 @@ class SBEditor < GameWindow
       TextField.new(4, 105, @font, :textField, nil, nil, 1, 2), # tiles y
       TextField.new(4, 536, @font, :textField, nil, nil, 1, 2), # params
       TextField.new(4, 554, @font, :textField, nil, nil, 1, 2), # ramp
-      Button.new(4, 125, @font, 'Gerar Mapa', :button),
+      Button.new(4, 125, @font, 'Gerar Mapa', :button) {
+        tiles_x = @components[1].text.to_i; tiles_y = @components[2].text.to_i
+        if tiles_x < @tiles_x
+          @objects = @objects[0...tiles_x]
+        elsif tiles_x > @tiles_x
+          min_y = tiles_y < @tiles_y ? tiles_y : @tiles_y
+          (@tiles_x...tiles_x).each do |i|
+            @objects[i] = []
+            (0...min_y).each { |j| @objects[i][j] = Cell.new }
+          end
+        end
+        if tiles_y < @tiles_y
+          @objects.map! { |o| o[0...tiles_y] }
+        elsif tiles_y > @tiles_y
+          @objects.each do |o|
+            (@tiles_y...tiles_y).each { |j| o[j] = Cell.new }
+          end
+        end
+        @map = Map.new 32, 32, tiles_x, tiles_y, EDITOR_WIDTH, EDITOR_HEIGHT
+        @tiles_x = tiles_x; @tiles_y = tiles_y
+      },
       Button.new(4, 392, @font, 'Próximo', :button) {
         @cur_tileset += 1
         @cur_tileset = 0 if @cur_tileset == @tilesets.size
@@ -133,7 +153,7 @@ class SBEditor < GameWindow
         map_pos = @map.get_map_pos(Mouse.x - @margin.x, Mouse.y)
         if Mouse.double_click? :left
           if @cur_element <= 64 and (@tile_type == 2 or @tile_type == 4)
-            code = "b#{'%02d' % (@cur_element - 1)}"
+            code = "#{'%02d' % (@cur_element - 1)}"
             check_fill(map_pos.x, map_pos.y, code)
           end
         elsif @cur_element <= 64
@@ -182,8 +202,20 @@ class SBEditor < GameWindow
     @components.each { |c| c.update }
   end
 
-  def check_fill(x, y, code)
+  def check_fill(i, j, code)
+    if @tile_type == 2; @objects[i][j].back = code
+    else; @objects[i][j].hide = 'h00'; end
+    check_fill i - 1, j, code if i > 0 and cell_empty?(i - 1, j, @tile_type == 4)
+    check_fill i + 1, j, code if i < @tiles_x and cell_empty?(i + 1, j, @tile_type == 4)
+    check_fill i, j - 1, code if j > 0 and cell_empty?(i, j - 1, @tile_type == 4)
+    check_fill i, j + 1, code if j < @tiles_y and cell_empty?(i, j + 1, @tile_type == 4)
+  end
 
+  def cell_empty?(i, j, hide)
+    (hide || @objects[i][j].back.nil?) &&
+             @objects[i][j].fore.nil? &&
+             @objects[i][j].obj.nil? &&
+             @objects[i][j].hide.nil?
   end
 
   def draw
@@ -194,9 +226,9 @@ class SBEditor < GameWindow
                 x + 31, y + 1, 0x11000000,
                 x + 1, y + 31, 0x11000000,
                 x + 31, y + 31, 0x11000000, 0 if @grid
-      @tiles[@objects[i][j].back.to_i].draw x, y if @objects[i][j].back
+      @tiles[@objects[i][j].back.to_i].draw x, y, 0 if @objects[i][j].back
       draw_object i, j, x, y
-      @tiles[@objects[i][j].fore.to_i].draw x, y if @objects[i][j].fore
+      @tiles[@objects[i][j].fore.to_i].draw x, y, 0 if @objects[i][j].fore
     end
     draw_quad 0, 0, 0xffffffff,
               200, 0, 0xffffffff,
