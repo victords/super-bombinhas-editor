@@ -6,19 +6,22 @@ Cell = Struct.new(:back, :fore, :obj, :hide)
 class SBEditor < GameWindow
   EDITOR_WIDTH = 1024
   EDITOR_HEIGHT = 576
+  NULL_COLOR = 0x11000000
+  RAMP_COLOR = 0x66000000
+  SELECTION_COLOR = 0x66ffff00
+  BLACK = 0xff000000
+  WHITE = 0xffffffff
 
   def initialize
-    super 1366, 768
+    super 1224, 720, false
 
     @tiles_x = @tiles_y = 300
     @map = Map.new(32, 32, @tiles_x, @tiles_y, EDITOR_WIDTH, EDITOR_HEIGHT)
-    @objects = []
-    (0..@tiles_x).each do |i|
-      @objects[i] = []
-      (0..@tiles_y).each do |j|
-        @objects[i][j] = Cell.new
-      end
-    end
+    @objects = Array.new(@tiles_x) {
+      Array.new(@tiles_y) {
+        Cell.new
+      }
+    }
     @margin = Vector.new 200, 0
 
     @tile_types = %w(Wall Passable Back Fore Hide)
@@ -49,7 +52,11 @@ class SBEditor < GameWindow
     @elements = []
     @cur_element = 1
     @element_index = 0
-    Dir["#{Res.prefix}#{Res.img_dir}el/*"].each { |f| @elements << Res.img("el_#{f.split('/')[-1].chomp('.png')}") }
+    Dir["#{Res.prefix}#{Res.img_dir}el/*"].each do |f|
+      el = f.split('/')[-1].chomp('.png')
+      if el == 'BombaAzulD1'; @elements.unshift Res.img("el_#{el}")
+      else; @elements << Res.img("el_#{el}"); end
+    end
 
     @tilesets = []
     @cur_tileset = 0
@@ -58,11 +65,11 @@ class SBEditor < GameWindow
     @tiles = Res.tileset '1'
 
     @components = [
-      TextField.new(4, 25, @font, :textField, nil, nil, 1, 2),  # name
-      TextField.new(4, 65, @font, :textField, nil, nil, 1, 2),  # tiles x
-      TextField.new(4, 105, @font, :textField, nil, nil, 1, 2), # tiles y
-      TextField.new(4, 536, @font, :textField, nil, nil, 1, 2), # params
-      TextField.new(4, 554, @font, :textField, nil, nil, 1, 2), # ramp
+      TextField.new(4, 25, @font, :textField, nil, nil, 1, 1, 8),   # name
+      TextField.new(4, 65, @font, :textField, nil, nil, 1, 1, 3),   # tiles x
+      TextField.new(4, 105, @font, :textField, nil, nil, 1, 1, 3),  # tiles y
+      TextField.new(4, 536, @font, :textField, nil, nil, 1, 1, 50), # params
+      TextField.new(4, 554, @font, :textField, nil, nil, 1, 1, 3),  # ramp
       Button.new(4, 125, @font, 'Gerar Mapa', :button) {
         tiles_x = @components[1].text.to_i; tiles_y = @components[2].text.to_i
         if tiles_x < @tiles_x
@@ -110,11 +117,24 @@ class SBEditor < GameWindow
         @cur_bg += 1
         @cur_bg = 0 if @cur_bg == @bgs.size
       },
-      Button.new(204, 700, @font, 'Adicionar', :button), # bg
-      Button.new(404, 700, @font, 'Remover', :button),   # bg
+      Button.new(204, 700, @font, 'Adicionar', :button) {
+        @added_bgs << "#{@cur_bg + 1}" if @added_bgs.size < 5
+      },
+      Button.new(404, 700, @font, 'Remover', :button) {
+        @added_bgs.pop
+      },
       Button.new(4, 645, @font, 'Salvar', :button),
       Button.new(604, 700, @font, 'Abrir', :button),
-      Button.new(604, 581, @font, 'Limpar', :button),
+      Button.new(604, 581, @font, 'Limpar', :button) {
+        @components[0..4].each { |c| c.text = ''; c.unfocus }
+        @cur_bg = 0; @cur_tileset = 0; @cur_element = 1
+        @objects = Array.new(@tiles_x) {
+          Array.new(@tiles_y) {
+            Cell.new
+          }
+        }
+        @ramps.clear
+      },
       Button.new(604, 611, @font, 'Grid on/off', :button) { @grid = !@grid }
     ]
   end
@@ -172,7 +192,7 @@ class SBEditor < GameWindow
           end
         else
           symbol = @switch_codes.include?(@cur_element - 65) ? '$' : '@'
-          text = "#{symbol}#{currentElement - 65}"
+          text = "#{symbol}#{@element_index}"
           text += ":#{@components[3].text}" if @components[3].text != ''
           @objects[map_pos.x][map_pos.y].obj = text
         end
@@ -222,33 +242,54 @@ class SBEditor < GameWindow
     clear 0xffffff
     @map.foreach do |i, j, x, y|
       x += @margin.x
-      draw_quad x + 1, y + 1, 0x11000000,
-                x + 31, y + 1, 0x11000000,
-                x + 1, y + 31, 0x11000000,
-                x + 31, y + 31, 0x11000000, 0 if @grid
+      draw_quad x + 1, y + 1, NULL_COLOR,
+                x + 31, y + 1, NULL_COLOR,
+                x + 1, y + 31, NULL_COLOR,
+                x + 31, y + 31, NULL_COLOR, 0 if @grid
       @tiles[@objects[i][j].back.to_i].draw x, y, 0 if @objects[i][j].back
       draw_object i, j, x, y
       @tiles[@objects[i][j].fore.to_i].draw x, y, 0 if @objects[i][j].fore
     end
-    draw_quad 0, 0, 0xffffffff,
-              200, 0, 0xffffffff,
-              0, 600, 0xffffffff,
-              200, 600, 0xffffffff, 0
-    draw_quad 200, 576, 0xffffffff,
-              800, 576, 0xffffffff,
-              200, 726, 0xffffffff,
-              800, 726, 0xffffffff, 0
-    @components.each { |c| c.draw }
-    @tilesets[@cur_tileset].draw 4, 200, 0, 0.75, 0.75
-    @bgs[@cur_bg].draw 204, 580, 0, 192.0 / @bgs[@cur_bg].width, 100.0 / @bgs[@cur_bg].height
+    @ramps.each do |r|
+      p = r.split(':')[1].split(',')
+      pos = @map.get_screen_pos(p[0].to_i, p[1].to_i) + @margin
+      draw_ramp pos.x, pos.y, r[1].to_i * 32, r[2].to_i * 32, r[0] == 'l'
+    end
 
-    @font.draw 'Nome:', 5, 5, 0, 1, 1, 0xff000000
-    @font.draw 'Tiles em X:', 5, 45, 0, 1, 1, 0xff000000
-    @font.draw 'Tiles em Y:', 5, 85, 0, 1, 1, 0xff000000
-    @font.draw @msg1, 100, 610, 0, 1, 1, 0xff000000
-    @font.draw @msg2, 700, 656, 0, 1, 1, 0xff000000
-    @font.draw_rel @tile_types[@tile_type], 100, 150, 0, 0.5, 0, 1, 1, 0xff000000
-    @font.draw "Saída: #{@exit_types[@exit_type]}", 4, 568, 0, 1, 1, 0xff000000
+    draw_quad 0, 0, WHITE,
+              200, 0, WHITE,
+              0, 600, WHITE,
+              200, 600, WHITE, 0
+    draw_quad 200, 576, WHITE,
+              1224, 576, WHITE,
+              200, 720, WHITE,
+              1224, 720, WHITE, 0
+    @components.each { |c| c.draw }
+
+    @bgs[@cur_bg].draw 204, 580, 0, 192.0 / @bgs[@cur_bg].width, 100.0 / @bgs[@cur_bg].height
+    @added_bgs.each_with_index do |b, i|
+      @font.draw b, 404, 580 + i * 20, 0, 1, 1, BLACK
+    end
+    @elements[@element_index].draw 26 + (64 - @elements[@element_index].width) / 2,
+                                   435 + (64 - @elements[@element_index].height) / 2, 0
+    @tilesets[@cur_tileset].draw 4, 200, 0, 0.75, 0.75
+    draw_ramp @ramp_area.x, @ramp_area.y, @ramp_area.w, @ramp_area.h, true
+
+    if @cur_element < 0
+      draw_selection @ramp_area.x, @ramp_area.y, @ramp_area.w, @ramp_area.h
+    elsif @cur_element < 65
+      draw_selection 4 + ((@cur_element - 1) % 8) * 24, 200 + ((@cur_element - 1) / 8) * 24, 24, 24
+    else
+      draw_selection @element_area.x, @element_area.y, @element_area.w, @element_area.h
+    end
+
+    @font.draw 'Nome:', 5, 5, 0, 1, 1, BLACK
+    @font.draw 'Tiles em X:', 5, 45, 0, 1, 1, BLACK
+    @font.draw 'Tiles em Y:', 5, 85, 0, 1, 1, BLACK
+    @font.draw @msg1, 100, 610, 0, 1, 1, BLACK
+    @font.draw @msg2, 700, 656, 0, 1, 1, BLACK
+    @font.draw_rel @tile_types[@tile_type], 100, 150, 0, 0.5, 0, 1, 1, BLACK
+    @font.draw "Saída: #{@exit_types[@exit_type]}", 4, 568, 0, 1, 1, BLACK
   end
 
   def draw_object(i, j, x, y)
@@ -258,7 +299,7 @@ class SBEditor < GameWindow
         @tiles[obj[1..2].to_i].draw x, y, 0
       elsif obj[0] == '!'
         @elements[0].draw x, y, 0
-        @font.draw obj[1..-1], x, y, 0, 1, 1, 0xff000000
+        @font.draw obj[1..-1], x, y, 0, 1, 1, BLACK
       else
         code = obj[1..-1].split(':')
         @elements[code[0].to_i].draw x, y, 0
@@ -269,6 +310,19 @@ class SBEditor < GameWindow
         end
       end
     end
+  end
+
+  def draw_ramp(x, y, w, h, left)
+    draw_triangle x + (left ? w : 0), y, RAMP_COLOR,
+                  x, y + h, RAMP_COLOR,
+                  x + w, y + h, RAMP_COLOR, 0
+  end
+
+  def draw_selection(x, y, w, h)
+    draw_quad x, y, SELECTION_COLOR,
+              x + w, y, SELECTION_COLOR,
+              x, y + h, SELECTION_COLOR,
+              x + w, y + h, SELECTION_COLOR, 0
   end
 end
 
