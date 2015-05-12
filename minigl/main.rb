@@ -13,7 +13,7 @@ class SBEditor < GameWindow
   WHITE = 0xffffffff
 
   def initialize
-    super 1224, 720, false
+    super 1366, 768, true
 
     @tiles_x = @tiles_y = 300
     @map = Map.new(32, 32, @tiles_x, @tiles_y, EDITOR_WIDTH, EDITOR_HEIGHT)
@@ -193,7 +193,7 @@ class SBEditor < GameWindow
         else
           symbol = @switch_codes.include?(@cur_element - 65) ? '$' : '@'
           text = "#{symbol}#{@element_index}"
-          text += ":#{@components[3].text}" if @components[3].text != ''
+          text += ":#{@components[3].text.gsub('|', ':')}" if @components[3].text != ''
           @objects[map_pos.x][map_pos.y].obj = text
         end
       end
@@ -305,7 +305,7 @@ class SBEditor < GameWindow
         @elements[code[0].to_i].draw x, y, 0
         if code.size > 1
           code[1..-1].each_with_index do |c, i|
-            @font.draw c, x, y + i * 12
+            @font.draw c, x, y + i * 9, 0, 0.75, 0.75, BLACK
           end
         end
       end
