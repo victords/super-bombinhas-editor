@@ -38,8 +38,7 @@ class SBEditor < GameWindow
     @switch_codes = [7, 8, 9, 12, 13, 20, 24, 26, 27]
     @grid = true
     @dir = '/home/victor/aleva/super-bombinhas/data/stage'
-    @msg1 = ''
-    @msg2 = ''
+    @msg = ''
 
     @font = Res.font :BankGothicMedium, 16
     @hide_tile = Res.img :el_ForeWall
@@ -123,8 +122,39 @@ class SBEditor < GameWindow
       Button.new(404, 700, @font, 'Remover', :button) {
         @added_bgs.pop
       },
-      Button.new(4, 645, @font, 'Salvar', :button),
-      Button.new(604, 700, @font, 'Abrir', :button),
+      Button.new(4, 645, @font, 'Salvar', :button) {
+        name = @components[0].text
+        if name.empty?
+          @msg = 'Dê um nome à fase!'
+        elsif @added_bgs.empty?
+          @msg = 'Escolha um BG!'
+        else
+          path = "#{@dir}/#{name.gsub('|', '/')}"
+          if @save_confirm
+            @save_confirm = false
+            File.delete path
+            save_file path
+          elsif File.exist? path
+            @msg = 'Salvar por cima?'
+            @save_confirm = true
+          else
+            save_file path
+          end
+        end
+      },
+      Button.new(4, 675, @font, 'Abrir', :button) {
+        name = @components[0].text
+        if name.empty?
+          @msg = 'Digite o nome!'
+        else
+          path = "#{@dir}/#{name.gsub('|', '/')}"
+          if File.exist? path
+            open_file path
+          else
+            @msg = 'O arquivo não existe!'
+          end
+        end
+      },
       Button.new(604, 581, @font, 'Limpar', :button) {
         @components[0..4].each { |c| c.text = ''; c.unfocus }
         @cur_bg = 0; @cur_tileset = 0; @cur_element = 1
@@ -226,9 +256,9 @@ class SBEditor < GameWindow
     if @tile_type == 2; @objects[i][j].back = code
     else; @objects[i][j].hide = 'h00'; end
     check_fill i - 1, j, code if i > 0 and cell_empty?(i - 1, j, @tile_type == 4)
-    check_fill i + 1, j, code if i < @tiles_x and cell_empty?(i + 1, j, @tile_type == 4)
+    check_fill i + 1, j, code if i < @tiles_x - 1 and cell_empty?(i + 1, j, @tile_type == 4)
     check_fill i, j - 1, code if j > 0 and cell_empty?(i, j - 1, @tile_type == 4)
-    check_fill i, j + 1, code if j < @tiles_y and cell_empty?(i, j + 1, @tile_type == 4)
+    check_fill i, j + 1, code if j < @tiles_y - 1 and cell_empty?(i, j + 1, @tile_type == 4)
   end
 
   def cell_empty?(i, j, hide)
@@ -236,6 +266,115 @@ class SBEditor < GameWindow
              @objects[i][j].fore.nil? &&
              @objects[i][j].obj.nil? &&
              @objects[i][j].hide.nil?
+  end
+
+  def save_file(path)
+    code = "#{@tiles_x},#{@tiles_y},#{@exit_type},#{@cur_tileset + 1}#"
+    last_element = get_cell_string(0, 0)
+    @added_bgs.each { |bg| code += "#{bg}," }
+    code = code.chop + '#'
+    count = 1
+    (0...@tiles_y).each do |j|
+      (0...@tiles_x).each do |i|
+        next if i == 0 && j == 0
+        element = get_cell_string i, j
+        if element == last_element &&
+           (last_element == '' ||
+            ((last_element[0] == 'w' ||
+              last_element[0] == 'p' ||
+              last_element[0] == 'b' ||
+              last_element[0] == 'f' ||
+              last_element[0] == 'h') && last_element.size == 3))
+          count += 1
+        else
+          if last_element == ''
+            code += "_#{count}"
+          else
+            code += last_element + (count > 1 ? "*#{count}" : '')
+          end
+          code += ';'
+          last_element = element
+          count = 1
+        end
+      end
+    end
+    if last_element == ''
+      code = code.chop + '#'
+    else
+      code += last_element + (count > 1 ? "*#{count}" : '') + '#'
+    end
+    @ramps.each { |r| code += "#{r};" }
+    code.chop! unless @ramps.empty?
+
+    File.open(path, 'w') { |f| f.write code }
+    @msg1 = 'Arquivo salvo'
+  end
+
+  def get_cell_string(i, j)
+    str = ''
+    str += "b#{@objects[i][j].back}" if @objects[i][j].back
+    str += "f#{@objects[i][j].fore}" if @objects[i][j].fore
+    str += @objects[i][j].hide if @objects[i][j].hide
+    str += @objects[i][j].obj if @objects[i][j].obj
+    str
+  end
+
+  def open_file(path)
+    f = File.open(path)
+    all = f.readline.chomp.split('#'); f.close
+    infos = all[0].split(','); bg_infos = all[1].split(','); elms = all[2].split(';')
+    @tiles_x = infos[0].to_i; @tiles_y = infos[1].to_i; @exit_type = infos[2].to_i
+    @map = Map.new(32, 32, @tiles_x, @tiles_y, EDITOR_WIDTH, EDITOR_HEIGHT)
+    @objects = Array.new(@tiles_x) {
+      Array.new(@tiles_y) {
+        Cell.new
+      }
+    }
+    @added_bgs.clear
+    bg_infos.each { |bg| @added_bgs << bg }
+    @cur_bg = 0
+    @cur_tileset = infos[3].to_i - 1
+    i = 0; j = 0
+    elms.each do |e|
+      if e[0] == '_'
+        i += e[1..-1].to_i
+        if i >= @map.size.x
+          j += i / @map.size.x
+          i %= @map.size.x
+        end
+      elsif e.size > 3 && e[3] == '*'
+        amount = e[4..-1].to_i
+        tile = e[0..2]
+        amount.times do
+          if e[0] == 'b'; @objects[i][j].back = tile
+          elsif e[0] == 'f'; @objects[i][j].fore = tile
+          elsif e[0] == 'h'; @objects[i][j].hide = tile
+          else; @objects[i][j].obj = tile; end
+          i += 1
+          begin i = 0; j += 1 end if i == @tiles_x
+        end
+      else
+        ind = 0
+        while ind < e.size
+          if e[ind] == 'b'; @objects[i][j].back = e.slice(ind, 3)
+          elsif e[ind] == 'f'; @objects[i][j].fore = e.slice(ind, 3)
+          elsif e[ind] == 'h'; @objects[i][j].hide = e.slice(ind, 3)
+          elsif e[ind] == 'p' || e[ind] == 'w'
+            @objects[i][j].obj = e.slice(ind, 3)
+          else
+            @objects[i][j].obj = e[ind..-1]
+            ind += 1000
+          end
+          ind += 3
+        end
+        i += 1
+        begin i = 0; j += 1 end if i == @tiles_x
+      end
+    end
+    @ramps.clear
+    @ramps = all[3].split(';') if all[3]
+
+    @msg = 'Arquivo aberto'
   end
 
   def draw
@@ -286,8 +425,7 @@ class SBEditor < GameWindow
     @font.draw 'Nome:', 5, 5, 0, 1, 1, BLACK
     @font.draw 'Tiles em X:', 5, 45, 0, 1, 1, BLACK
     @font.draw 'Tiles em Y:', 5, 85, 0, 1, 1, BLACK
-    @font.draw @msg1, 100, 610, 0, 1, 1, BLACK
-    @font.draw @msg2, 700, 656, 0, 1, 1, BLACK
+    @font.draw_rel @msg, 100, 610, 0, 0.5, 0, 1, 1, BLACK
     @font.draw_rel @tile_types[@tile_type], 100, 150, 0, 0.5, 0, 1, 1, BLACK
     @font.draw "Saída: #{@exit_types[@exit_type]}", 4, 568, 0, 1, 1, BLACK
   end
