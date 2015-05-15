@@ -7,6 +7,7 @@ class SBEditor < GameWindow
   EDITOR_WIDTH = 1024
   EDITOR_HEIGHT = 576
   NULL_COLOR = 0x11000000
+  HIDE_COLOR = 0x33000099
   RAMP_COLOR = 0x66000000
   SELECTION_COLOR = 0x66ffff00
   BLACK = 0xff000000
@@ -41,7 +42,6 @@ class SBEditor < GameWindow
     @msg = ''
 
     @font = Res.font :BankGothicMedium, 16
-    @hide_tile = Res.img :el_ForeWall
 
     @bgs = []
     @cur_bg = 0
@@ -53,7 +53,7 @@ class SBEditor < GameWindow
     @element_index = 0
     Dir["#{Res.prefix}#{Res.img_dir}el/*"].each do |f|
       el = f.split('/')[-1].chomp('.png')
-      if el == 'BombaAzulD1'; @elements.unshift Res.img("el_#{el}")
+      if el == 'Bomb'; @elements.unshift Res.img("el_#{el}")
       else; @elements << Res.img("el_#{el}"); end
     end
 
@@ -203,16 +203,16 @@ class SBEditor < GameWindow
         map_pos = @map.get_map_pos(Mouse.x - @margin.x, Mouse.y)
         if Mouse.double_click? :left
           if @cur_element <= 64 and (@tile_type == 2 or @tile_type == 4)
-            code = "#{'%02d' % (@cur_element - 1)}"
+            code = "b#{'%02d' % (@cur_element - 1)}"
             check_fill(map_pos.x, map_pos.y, code)
           end
         elsif @cur_element <= 64
           if @tile_type == 0 or @tile_type == 1
             @objects[map_pos.x][map_pos.y].obj = (@tile_type == 0 ? 'w' : 'p') + ('%02d' % (@cur_element - 1))
           elsif @tile_type == 2
-            @objects[map_pos.x][map_pos.y].back = '%02d' % (@cur_element - 1)
+            @objects[map_pos.x][map_pos.y].back = 'b%02d' % (@cur_element - 1)
           elsif @tile_type == 3
-            @objects[map_pos.x][map_pos.y].fore = '%02d' % (@cur_element - 1)
+            @objects[map_pos.x][map_pos.y].fore = 'f%02d' % (@cur_element - 1)
           else
             @objects[map_pos.x][map_pos.y].hide = 'h00'
           end
@@ -307,13 +307,13 @@ class SBEditor < GameWindow
     code.chop! unless @ramps.empty?
 
     File.open(path, 'w') { |f| f.write code }
-    @msg1 = 'Arquivo salvo'
+    @msg = 'Arquivo salvo'
   end
 
   def get_cell_string(i, j)
     str = ''
-    str += "b#{@objects[i][j].back}" if @objects[i][j].back
-    str += "f#{@objects[i][j].fore}" if @objects[i][j].fore
+    str += @objects[i][j].back if @objects[i][j].back
+    str += @objects[i][j].fore if @objects[i][j].fore
     str += @objects[i][j].hide if @objects[i][j].hide
     str += @objects[i][j].obj if @objects[i][j].obj
     str
@@ -385,9 +385,13 @@ class SBEditor < GameWindow
                 x + 31, y + 1, NULL_COLOR,
                 x + 1, y + 31, NULL_COLOR,
                 x + 31, y + 31, NULL_COLOR, 0 if @grid
-      @tiles[@objects[i][j].back.to_i].draw x, y, 0 if @objects[i][j].back
+      @tiles[@objects[i][j].back[1..2].to_i].draw x, y, 0 if @objects[i][j].back
       draw_object i, j, x, y
-      @tiles[@objects[i][j].fore.to_i].draw x, y, 0 if @objects[i][j].fore
+      @tiles[@objects[i][j].fore[1..2].to_i].draw x, y, 0 if @objects[i][j].fore
+      draw_quad x, y, HIDE_COLOR,
+                x + 32, y, HIDE_COLOR,
+                x, y + 32, HIDE_COLOR,
+                x + 32, y + 32, HIDE_COLOR, 0 if @objects[i][j].hide
     end
     @ramps.each do |r|
       p = r.split(':')[1].split(',')
