@@ -36,7 +36,7 @@ class SBEditor < GameWindow
     (0..63).each { |i| @tile_areas[i] = Rectangle.new(4 + (i % 8) * 24, 200 + (i / 8) * 24, 24, 24) }
 
     @ramps = []
-    @switch_codes = [7, 8, 9, 12, 13, 20, 24, 26, 27]
+    @switch_codes = []
     @grid = true
     @dir = '/home/victor/aleva/super-bombinhas/data/stage'
     @msg = ''
@@ -51,10 +51,17 @@ class SBEditor < GameWindow
     @elements = []
     @cur_element = 1
     @element_index = 0
-    Dir["#{Res.prefix}#{Res.img_dir}el/*"].each do |f|
+    switch_names = %w(Life Key Door GunPowder Crack SaveBombie Attack1 Ball BallReceptor)
+    i = 1
+    Dir["#{Res.prefix}#{Res.img_dir}el/*"].sort.each do |f|
       el = f.split('/')[-1].chomp('.png')
-      if el == 'Bomb'; @elements.unshift Res.img("el_#{el}")
-      else; @elements << Res.img("el_#{el}"); end
+      if el == 'Bomb'
+        @elements.unshift Res.img("el_#{el}")
+      else
+        @elements << Res.img("el_#{el}")
+        @switch_codes << i if switch_names.index(el)
+        i += 1
+      end
     end
 
     @tilesets = []
