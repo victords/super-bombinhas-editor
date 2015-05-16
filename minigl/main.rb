@@ -71,11 +71,12 @@ class SBEditor < GameWindow
     @tiles = Res.tileset '1'
 
     @components = [
-      TextField.new(4, 25, @font, :textField, nil, nil, 1, 1, 8),   # name
-      TextField.new(4, 65, @font, :textField, nil, nil, 1, 1, 3),   # tiles x
-      TextField.new(4, 105, @font, :textField, nil, nil, 1, 1, 3),  # tiles y
-      TextField.new(4, 536, @font, :textField, nil, nil, 1, 1, 50), # params
-      TextField.new(4, 554, @font, :textField, nil, nil, 1, 1, 3),  # ramp
+      TextField.new(4, 25, @font, :textField, nil, nil, 1, 1, 8),    # name
+      TextField.new(4, 65, @font, :textField, nil, nil, 1, 1, 3),    # tiles x
+      TextField.new(4, 105, @font, :textField, nil, nil, 1, 1, 3),   # tiles y
+      TextField.new(4, 536, @font, :textField, nil, nil, 1, 1, 50),  # params
+      TextField.new(4, 554, @font, :textField, nil, nil, 1, 1, 3),   # ramp
+      TextField.new(604, 700, @font, :textField, nil, nil, 1, 1, 2), # bgm
       Button.new(4, 125, @font, 'Gerar Mapa', :button) {
         tiles_x = @components[1].text.to_i; tiles_y = @components[2].text.to_i
         if tiles_x < @tiles_x
@@ -135,6 +136,8 @@ class SBEditor < GameWindow
           @msg = 'Dê um nome à fase!'
         elsif @added_bgs.empty?
           @msg = 'Escolha um BG!'
+        elsif @components[5].text.empty?
+          @msg = 'Escolha a BGM!'
         else
           path = "#{@dir}/#{name.gsub('|', '/')}"
           if @save_confirm
@@ -163,13 +166,14 @@ class SBEditor < GameWindow
         end
       },
       Button.new(604, 581, @font, 'Limpar', :button) {
-        @components[0..4].each { |c| c.text = ''; c.unfocus }
+        @components[0..5].each { |c| c.text = ''; c.unfocus }
         @cur_bg = 0; @cur_tileset = 0; @cur_element = 1
         @objects = Array.new(@tiles_x) {
           Array.new(@tiles_y) {
             Cell.new
           }
         }
+        @added_bgs.clear
         @ramps.clear
       },
       Button.new(604, 611, @font, 'Grid on/off', :button) { @grid = !@grid }
@@ -276,7 +280,7 @@ class SBEditor < GameWindow
   end
 
   def save_file(path)
-    code = "#{@tiles_x},#{@tiles_y},#{@exit_type},#{@cur_tileset + 1}#"
+    code = "#{@tiles_x},#{@tiles_y},#{@exit_type},#{@cur_tileset + 1},#{@components[5].text}#"
     last_element = get_cell_string(0, 0)
     @added_bgs.each { |bg| code += "#{bg}," }
     code = code.chop + '#'
@@ -332,6 +336,7 @@ class SBEditor < GameWindow
     infos = all[0].split(','); bg_infos = all[1].split(','); elms = all[2].split(';')
     @tiles_x = infos[0].to_i; @tiles_y = infos[1].to_i; @exit_type = infos[2].to_i
     @map = Map.new(32, 32, @tiles_x, @tiles_y, EDITOR_WIDTH, EDITOR_HEIGHT)
+    @components[1].text = infos[0]; @components[2].text = infos[1]
     @objects = Array.new(@tiles_x) {
       Array.new(@tiles_y) {
         Cell.new
@@ -341,6 +346,8 @@ class SBEditor < GameWindow
     bg_infos.each { |bg| @added_bgs << bg }
     @cur_bg = 0
     @cur_tileset = infos[3].to_i - 1
+    @components[5].text = infos[4]
+    @components[0..5].each { |c| c.unfocus }
     i = 0; j = 0
     elms.each do |e|
       if e[0] == '_'
@@ -438,7 +445,8 @@ class SBEditor < GameWindow
     @font.draw 'Tiles em Y:', 5, 85, 0, 1, 1, BLACK
     @font.draw_rel @msg, 100, 610, 0, 0.5, 0, 1, 1, BLACK
     @font.draw_rel @tile_types[@tile_type], 100, 150, 0, 0.5, 0, 1, 1, BLACK
-    @font.draw "Saída: #{@exit_types[@exit_type]}", 4, 568, 0, 1, 1, BLACK
+    @font.draw "Saída: #{@exit_types[@exit_type]}", 4, 570, 0, 1, 1, BLACK
+    @font.draw 'BGM:', 604, 680, 0, 1, 1, BLACK
   end
 
   def draw_object(i, j, x, y)
