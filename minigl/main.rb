@@ -423,6 +423,11 @@ class SBEditor < GameWindow
               1224, 720, WHITE, 0
     @components.each { |c| c.draw }
 
+    if Mouse.over? @editable_area
+      p = @map.get_map_pos(Mouse.x - @margin.x, Mouse.y)
+      @font.draw "#{p.x}, #{p.y}", Mouse.x, Mouse.y - 15, 0, 1, 1, BLACK
+    end
+
     @bgs[@cur_bg].draw 204, 580, 0, 192.0 / @bgs[@cur_bg].width, 100.0 / @bgs[@cur_bg].height
     @added_bgs.each_with_index do |b, i|
       @font.draw b, 404, 580 + i * 20, 0, 1, 1, BLACK
