@@ -71,7 +71,7 @@ class SBEditor < GameWindow
     @tiles = Res.tileset '1'
 
     @components = [
-      TextField.new(4, 25, @font, :textField, nil, nil, 1, 1, 8),    # name
+      TextField.new(4, 25, @font, :textField, nil, nil, 1, 1, 10),    # name
       TextField.new(4, 65, @font, :textField, nil, nil, 1, 1, 3),    # tiles x
       TextField.new(4, 105, @font, :textField, nil, nil, 1, 1, 3),   # tiles y
       TextField.new(4, 536, @font, :textField, nil, nil, 1, 1, 50),  # params
@@ -399,9 +399,15 @@ class SBEditor < GameWindow
                 x + 31, y + 1, NULL_COLOR,
                 x + 1, y + 31, NULL_COLOR,
                 x + 31, y + 31, NULL_COLOR, 0 if @grid
-      @tiles[@objects[i][j].back[1..2].to_i].draw x, y, 0 if @objects[i][j].back
+      if @objects[i][j].back
+        @tiles[@objects[i][j].back[1..2].to_i].draw x, y, 0
+        @font.draw 'b', x + 20, y + 18, 1, 1, 1, BLACK
+      end
       draw_object i, j, x, y
-      @tiles[@objects[i][j].fore[1..2].to_i].draw x, y, 0 if @objects[i][j].fore
+      if @objects[i][j].fore
+        @tiles[@objects[i][j].fore[1..2].to_i].draw x, y, 0
+        @font.draw 'f', x + 20, y + 8, 1, 1, 1, BLACK
+      end
       draw_quad x, y, HIDE_COLOR,
                 x + 32, y, HIDE_COLOR,
                 x, y + 32, HIDE_COLOR,
@@ -425,7 +431,7 @@ class SBEditor < GameWindow
 
     if Mouse.over? @editable_area
       p = @map.get_map_pos(Mouse.x - @margin.x, Mouse.y)
-      @font.draw "#{p.x}, #{p.y}", Mouse.x, Mouse.y - 15, 0, 1, 1, BLACK
+      @font.draw "#{p.x}, #{p.y}", Mouse.x, Mouse.y - 15, 1, 1, 1, BLACK
     end
 
     @bgs[@cur_bg].draw 204, 580, 0, 192.0 / @bgs[@cur_bg].width, 100.0 / @bgs[@cur_bg].height
@@ -459,6 +465,7 @@ class SBEditor < GameWindow
     if obj
       if obj[0] == 'w' || obj[0] == 'p'
         @tiles[obj[1..2].to_i].draw x, y, 0
+        @font.draw obj[0], x + 20, y - 2, 1, 1, 1, BLACK
       elsif obj[0] == '!'
         @elements[0].draw x, y, 0
         @font.draw obj[1..-1], x, y, 0, 1, 1, BLACK
