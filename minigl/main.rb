@@ -6,6 +6,7 @@ Cell = Struct.new(:back, :fore, :obj, :hide)
 class SBEditor < GameWindow
   EDITOR_WIDTH = 1024
   EDITOR_HEIGHT = 576
+  TOTAL_TILES = 100
   NULL_COLOR = 0x11000000
   HIDE_COLOR = 0x33000099
   RAMP_COLOR = 0x66000000
@@ -33,7 +34,7 @@ class SBEditor < GameWindow
     @element_area = Rectangle.new(26, 435, 64, 64)
     @ramp_area = Rectangle.new(118, 435, 64, 64)
     @tile_areas = []
-    (0..63).each { |i| @tile_areas[i] = Rectangle.new(4 + (i % 8) * 24, 200 + (i / 8) * 24, 24, 24) }
+    (0..99).each { |i| @tile_areas[i] = Rectangle.new((i % 10) * 20, 200 + (i / 10) * 20, 20, 20) }
 
     @ramps = []
     @switch_codes = []
@@ -109,12 +110,12 @@ class SBEditor < GameWindow
       Button.new(4, 500, @font, 'Próximo', :button) {
         @element_index += 1
         @element_index = 0 if @element_index == @elements.size
-        @cur_element = 65 + @element_index
+        @cur_element = TOTAL_TILES + @element_index + 1
       },
       Button.new(4, 518, @font, 'Anterior', :button) {
         @element_index -= 1
         @element_index = @elements.size - 1 if @element_index < 0
-        @cur_element = 65 + @element_index
+        @cur_element = TOTAL_TILES + @element_index + 1
       },
       Button.new(4, 588, @font, 'Próximo', :button) {
         @exit_type += 1
@@ -197,14 +198,14 @@ class SBEditor < GameWindow
             @ramps << "#{@components[4].text}:#{map_pos.x},#{map_pos.y}"
           end
         else
-          (0..63).each do |i|
+          (0..(TOTAL_TILES - 1)).each do |i|
             if Mouse.over? @tile_areas[i]
               @cur_element = i + 1
               break
             end
           end
           if Mouse.over? @element_area
-            @cur_element = 65 + @element_index
+            @cur_element = TOTAL_TILES + @element_index + 1
           elsif Mouse.over? @ramp_area
             @cur_element = -1
           end
@@ -213,11 +214,11 @@ class SBEditor < GameWindow
       if Mouse.over? @editable_area and @cur_element > 0
         map_pos = @map.get_map_pos(Mouse.x - @margin.x, Mouse.y)
         if Mouse.double_click? :left
-          if @cur_element <= 64 and (@tile_type == 2 or @tile_type == 4)
+          if @cur_element <= TOTAL_TILES and (@tile_type == 2 or @tile_type == 4)
             code = "b#{'%02d' % (@cur_element - 1)}"
             check_fill(map_pos.x, map_pos.y, code)
           end
-        elsif @cur_element <= 64
+        elsif @cur_element <= TOTAL_TILES
           if @tile_type == 0 or @tile_type == 1
             @objects[map_pos.x][map_pos.y].obj = (@tile_type == 0 ? 'w' : 'p') + ('%02d' % (@cur_element - 1))
           elsif @tile_type == 2
@@ -227,12 +228,12 @@ class SBEditor < GameWindow
           else
             @objects[map_pos.x][map_pos.y].hide = 'h00'
           end
-        elsif @cur_element == 65 # bomba
+        elsif @cur_element == TOTAL_TILES + 1 # bomba
           if @components[3].text != ''
             @objects[map_pos.x][map_pos.y].obj = "!#{@components[3].text}"
           end
         else
-          symbol = @switch_codes.include?(@cur_element - 65) ? '$' : '@'
+          symbol = @switch_codes.include?(@cur_element - TOTAL_TILES - 1) ? '$' : '@'
           text = "#{symbol}#{@element_index}"
           text += ":#{@components[3].text.gsub('|', ':')}" if @components[3].text != ''
           @objects[map_pos.x][map_pos.y].obj = text
@@ -440,13 +441,13 @@ class SBEditor < GameWindow
     end
     @elements[@element_index].draw 26 + (64 - @elements[@element_index].width) / 2,
                                    435 + (64 - @elements[@element_index].height) / 2, 0
-    @tilesets[@cur_tileset].draw 4, 200, 0, 0.75, 0.75
+    @tilesets[@cur_tileset].draw 0, 200, 0, 0.625, 0.625
     draw_ramp @ramp_area.x, @ramp_area.y, @ramp_area.w, @ramp_area.h, true
 
     if @cur_element < 0
       draw_selection @ramp_area.x, @ramp_area.y, @ramp_area.w, @ramp_area.h
-    elsif @cur_element < 65
-      draw_selection 4 + ((@cur_element - 1) % 8) * 24, 200 + ((@cur_element - 1) / 8) * 24, 24, 24
+    elsif @cur_element <= TOTAL_TILES
+      draw_selection ((@cur_element - 1) % 10) * 20, 200 + ((@cur_element - 1) / 10) * 20, 20, 20
     else
       draw_selection @element_area.x, @element_area.y, @element_area.w, @element_area.h
     end
