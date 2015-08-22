@@ -34,7 +34,7 @@ class SBEditor < GameWindow
     @element_area = Rectangle.new(26, 435, 64, 64)
     @ramp_area = Rectangle.new(118, 435, 64, 64)
     @tile_areas = []
-    (0..99).each { |i| @tile_areas[i] = Rectangle.new((i % 10) * 20, 200 + (i / 10) * 20, 20, 20) }
+    (0..99).each { |i| @tile_areas[i] = Rectangle.new((i % 10) * 20, 192 + (i / 10) * 20, 20, 20) }
 
     @ramps = []
     @switch_codes = []
@@ -47,7 +47,7 @@ class SBEditor < GameWindow
     @bgs = []
     @cur_bg = 0
     @added_bgs = []
-    Dir["#{Res.prefix}#{Res.img_dir}bg/*"].each { |f| @bgs << Res.img("bg_#{f.split('/')[-1]}", false, false, '') }
+    Dir["#{Res.prefix}#{Res.img_dir}bg/*"].sort.each { |f| @bgs << Res.img("bg_#{f.split('/')[-1]}", false, false, '') }
 
     @elements = []
     @cur_element = 1
@@ -102,6 +102,7 @@ class SBEditor < GameWindow
       Button.new(4, 392, @font, 'Próximo', :button) {
         @cur_tileset += 1
         @cur_tileset = 0 if @cur_tileset == @tilesets.size
+        @tiles = Res.tileset (@cur_tileset + 1).to_s
       },
       Button.new(4, 172, @font, 'Próximo', :button) {
         @tile_type += 1
@@ -347,6 +348,7 @@ class SBEditor < GameWindow
     bg_infos.each { |bg| @added_bgs << bg }
     @cur_bg = 0
     @cur_tileset = infos[3].to_i - 1
+    @tiles = Res.tileset (@cur_tileset + 1).to_s
     @components[5].text = infos[4]
     @components[0..5].each { |c| c.unfocus }
     i = 0; j = 0
@@ -441,13 +443,13 @@ class SBEditor < GameWindow
     end
     @elements[@element_index].draw 26 + (64 - @elements[@element_index].width) / 2,
                                    435 + (64 - @elements[@element_index].height) / 2, 0
-    @tilesets[@cur_tileset].draw 0, 200, 0, 0.625, 0.625
+    @tilesets[@cur_tileset].draw 0, 192, 0, 0.625, 0.625
     draw_ramp @ramp_area.x, @ramp_area.y, @ramp_area.w, @ramp_area.h, true
 
     if @cur_element < 0
       draw_selection @ramp_area.x, @ramp_area.y, @ramp_area.w, @ramp_area.h
     elsif @cur_element <= TOTAL_TILES
-      draw_selection ((@cur_element - 1) % 10) * 20, 200 + ((@cur_element - 1) / 10) * 20, 20, 20
+      draw_selection ((@cur_element - 1) % 10) * 20, 192 + ((@cur_element - 1) / 10) * 20, 20, 20
     else
       draw_selection @element_area.x, @element_area.y, @element_area.w, @element_area.h
     end
