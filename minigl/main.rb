@@ -10,6 +10,7 @@ class SBEditor < GameWindow
   NULL_COLOR = 0x11000000
   HIDE_COLOR = 0x33000099
   RAMP_COLOR = 0x66000000
+  RAMP_UP_COLOR = 0x66990099
   SELECTION_COLOR = 0x66ffff00
   BLACK = 0xff000000
   WHITE = 0xffffffff
@@ -72,11 +73,11 @@ class SBEditor < GameWindow
     @tiles = Res.tileset '1'
 
     @components = [
-      TextField.new(4, 25, @font, :textField, nil, nil, 1, 1, 10),    # name
+      TextField.new(4, 25, @font, :textField, nil, nil, 1, 1, 10),   # name
       TextField.new(4, 65, @font, :textField, nil, nil, 1, 1, 3),    # tiles x
       TextField.new(4, 105, @font, :textField, nil, nil, 1, 1, 3),   # tiles y
       TextField.new(4, 536, @font, :textField, nil, nil, 1, 1, 50),  # params
-      TextField.new(4, 554, @font, :textField, nil, nil, 1, 1, 3),   # ramp
+      TextField.new(4, 554, @font, :textField, nil, nil, 1, 1, 4),   # ramp
       TextField.new(604, 700, @font, :textField, nil, nil, 1, 1, 2), # bgm
       Button.new(4, 125, @font, 'Gerar Mapa', :button) {
         tiles_x = @components[1].text.to_i; tiles_y = @components[2].text.to_i
@@ -246,7 +247,8 @@ class SBEditor < GameWindow
         @ramps.each do |ramp|
           coords = ramp.split(':')[1].split(',')
           x = coords[0].to_i; y = coords[1].to_i
-          w = ramp[1].to_i * 32; h = ramp[2].to_i * 32
+          a = ramp[1] == "'" ? 2 : 1
+          w = ramp[a].to_i * 32; h = ramp[a + 1].to_i * 32
           pos = @map.get_screen_pos(x, y) + @margin
           @ramps.delete ramp if Mouse.over? pos.x, pos.y, w, h
         end
@@ -419,7 +421,9 @@ class SBEditor < GameWindow
     @ramps.each do |r|
       p = r.split(':')[1].split(',')
       pos = @map.get_screen_pos(p[0].to_i, p[1].to_i) + @margin
-      draw_ramp pos.x, pos.y, r[1].to_i * 32, r[2].to_i * 32, r[0] == 'l'
+      a = r[1] == "'" ? 2 : 1
+      w = r[a].to_i * 32; h = r[a + 1].to_i * 32
+      draw_ramp pos.x, pos.y, w, h, r[0] == 'l', a == 2
     end
 
     draw_quad 0, 0, WHITE,
@@ -444,7 +448,7 @@ class SBEditor < GameWindow
     @elements[@element_index].draw 26 + (64 - @elements[@element_index].width) / 2,
                                    435 + (64 - @elements[@element_index].height) / 2, 0
     @tilesets[@cur_tileset].draw 0, 192, 0, 0.625, 0.625
-    draw_ramp @ramp_area.x, @ramp_area.y, @ramp_area.w, @ramp_area.h, true
+    draw_ramp @ramp_area.x, @ramp_area.y, @ramp_area.w, @ramp_area.h, true, false
 
     if @cur_element < 0
       draw_selection @ramp_area.x, @ramp_area.y, @ramp_area.w, @ramp_area.h
@@ -484,10 +488,10 @@ class SBEditor < GameWindow
     end
   end
 
-  def draw_ramp(x, y, w, h, left)
-    draw_triangle x + (left ? w : 0), y, RAMP_COLOR,
-                  x, y + h, RAMP_COLOR,
-                  x + w, y + h, RAMP_COLOR, 0
+  def draw_ramp(x, y, w, h, left, up)
+    draw_triangle x + (left ? w : 0), y, up ? RAMP_UP_COLOR : RAMP_COLOR,
+                  x, y + h, up ? RAMP_UP_COLOR : RAMP_COLOR,
+                  x + w, y + h, up ? RAMP_UP_COLOR : RAMP_COLOR, 0
   end
 
   def draw_selection(x, y, w, h)
