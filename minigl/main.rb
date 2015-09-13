@@ -68,7 +68,7 @@ class SBEditor < GameWindow
 
     @tilesets = []
     @cur_tileset = 0
-    Dir["#{Res.prefix}#{Res.img_dir}ts/*"].each { |f| @tilesets << Res.img("ts_#{f.split('/')[-1].chomp('.png')}") }
+    Dir["#{Res.prefix}#{Res.img_dir}ts/*"].sort.each { |f| @tilesets << Res.img("ts_#{f.split('/')[-1].chomp('.png')}") }
     Res.tileset_dir = 'img/ts'
     @tiles = Res.tileset '1'
 
