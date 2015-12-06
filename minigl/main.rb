@@ -77,8 +77,8 @@ class SBEditor < GameWindow
       TextField.new(4, 25, @font, :textField, nil, nil, 1, 1, 10),   # name
       TextField.new(4, 65, @font, :textField, nil, nil, 1, 1, 3),    # tiles x
       TextField.new(4, 105, @font, :textField, nil, nil, 1, 1, 3),   # tiles y
-      TextField.new(4, 536, @font, :textField, nil, nil, 1, 1, 50),  # params
-      TextField.new(4, 554, @font, :textField, nil, nil, 1, 1, 4),   # ramp
+      TextField.new(4, 536, @font, :textField, nil, nil, 1, 1, 50) { @cur_element = TOTAL_TILES + @element_index + 1 }, # params
+      TextField.new(4, 554, @font, :textField, nil, nil, 1, 1, 4) { @cur_element = -1 }, # ramp
       TextField.new(604, 700, @font, :textField, nil, nil, 1, 1, 2), # bgm
       Button.new(4, 125, @font, 'Gerar Mapa', :button) {
         tiles_x = @components[1].text.to_i; tiles_y = @components[2].text.to_i
@@ -105,10 +105,12 @@ class SBEditor < GameWindow
         @cur_tileset += 1
         @cur_tileset = 0 if @cur_tileset == @tilesets.size
         @tiles = Res.tileset (@cur_tileset + 1).to_s
+        @cur_element = 1 if @cur_element < 0 or @cur_element > TOTAL_TILES
       },
       Button.new(4, 172, @font, 'Próximo', :button) {
         @tile_type += 1
         @tile_type = 0 if @tile_type == @tile_types.size
+        @cur_element = 1 if @cur_element < 0 or @cur_element > TOTAL_TILES
       },
       Button.new(4, 500, @font, 'Próximo', :button) {
         @element_index += 1
