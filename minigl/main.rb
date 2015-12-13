@@ -16,7 +16,7 @@ class SBEditor < GameWindow
   WHITE = 0xffffffff
 
   def initialize
-    super 1366, 768, true
+    super 1240, 720, false
 
     @tiles_x = @tiles_y = 300
     @map = Map.new(32, 32, @tiles_x, @tiles_y, EDITOR_WIDTH, EDITOR_HEIGHT)
@@ -116,11 +116,13 @@ class SBEditor < GameWindow
         @element_index += 1
         @element_index = 0 if @element_index == @elements.size
         @cur_element = TOTAL_TILES + @element_index + 1
+        @components[3].text = ''
       },
       Button.new(4, 518, @font, 'Anterior', :button) {
         @element_index -= 1
         @element_index = @elements.size - 1 if @element_index < 0
         @cur_element = TOTAL_TILES + @element_index + 1
+        @components[3].text = ''
       },
       Button.new(4, 588, @font, 'Próximo', :button) {
         @exit_type += 1
