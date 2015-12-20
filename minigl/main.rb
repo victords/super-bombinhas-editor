@@ -184,7 +184,7 @@ class SBEditor < GameWindow
         @added_bgs.clear
         @ramps.clear
       },
-      Button.new(604, 611, @font, 'Grid on/off', :button) { @grid = !@grid }
+      Button.new(604, 611, @font, 'Grid/Codes on/off', :button) { @grid = !@grid }
     ]
   end
 
@@ -197,12 +197,16 @@ class SBEditor < GameWindow
     Mouse.update
     close if KB.key_pressed? Gosu::KbEscape
 
+    ctrl = (KB.key_down? Gosu::KbLeftControl or KB.key_down? Gosu::KbRightControl)
     if Mouse.button_down? :left
       if Mouse.button_pressed? :left
         if Mouse.over? @editable_area
           if @cur_element < 0 # ramp
             map_pos = @map.get_map_pos(Mouse.x - @margin.x, Mouse.y)
             @ramps << "#{@components[4].text}:#{map_pos.x},#{map_pos.y}"
+          elsif ctrl
+            map_pos = @map.get_map_pos(Mouse.x - @margin.x, Mouse.y)
+            @components[3].text += "|#{map_pos.x},#{map_pos.y}"
           end
         else
           (0..(TOTAL_TILES - 1)).each do |i|
@@ -218,7 +222,7 @@ class SBEditor < GameWindow
           end
         end
       end
-      if Mouse.over? @editable_area and @cur_element > 0
+      if Mouse.over? @editable_area and @cur_element > 0 and not ctrl
         map_pos = @map.get_map_pos(Mouse.x - @margin.x, Mouse.y)
         if Mouse.double_click? :left
           if @cur_element <= TOTAL_TILES and (@tile_type == 2 or @tile_type == 4)
@@ -411,12 +415,12 @@ class SBEditor < GameWindow
                 x + 31, y + 31, NULL_COLOR, 0 if @grid
       if @objects[i][j].back
         @tiles[@objects[i][j].back[1..2].to_i].draw x, y, 0
-        @font.draw 'b', x + 20, y + 18, 1, 1, 1, BLACK
+        @font.draw 'b', x + 20, y + 18, 1, 1, 1, BLACK if @grid
       end
       draw_object i, j, x, y
       if @objects[i][j].fore
         @tiles[@objects[i][j].fore[1..2].to_i].draw x, y, 0
-        @font.draw 'f', x + 20, y + 8, 1, 1, 1, BLACK
+        @font.draw 'f', x + 20, y + 8, 1, 1, 1, BLACK if @grid
       end
       draw_quad x, y, HIDE_COLOR,
                 x + 32, y, HIDE_COLOR,
@@ -477,14 +481,14 @@ class SBEditor < GameWindow
     if obj
       if obj[0] == 'w' || obj[0] == 'p'
         @tiles[obj[1..2].to_i].draw x, y, 0
-        @font.draw obj[0], x + 20, y - 2, 1, 1, 1, BLACK
+        @font.draw obj[0], x + 20, y - 2, 1, 1, 1, BLACK if @grid
       elsif obj[0] == '!'
         @elements[0].draw x, y, 0
-        @font.draw obj[1..-1], x, y, 0, 1, 1, BLACK
+        @font.draw obj[1..-1], x, y, 0, 1, 1, BLACK if @grid
       else
         code = obj[1..-1].split(':')
         @elements[code[0].to_i].draw x, y, 0
-        if code.size > 1
+        if @grid && code.size > 1
           code[1..-1].each_with_index do |c, i|
             @font.draw c, x, y + i * 9, 0, 0.75, 0.75, BLACK
           end
