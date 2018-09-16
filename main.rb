@@ -40,7 +40,8 @@ class SBEditor < GameWindow
     @ramps = []
     @switch_codes = []
     @grid = true
-    @dir = '/home/victor/aleva/super-bombinhas/data/stage'
+    @dark = false
+    @dir = '/home/victor/Projects/super-bombinhas/data/stage'
     @msg = ''
 
     @font = Res.font :BankGothicMedium, 16
@@ -184,7 +185,8 @@ class SBEditor < GameWindow
         @added_bgs.clear
         @ramps.clear
       },
-      Button.new(604, 611, @font, 'Grid/Codes on/off', :button) { @grid = !@grid }
+      Button.new(604, 611, @font, 'Grid/Codes on/off', :button) { @grid = !@grid },
+      dark_btn = Button.new(604, 641, @font, 'Normal', :button) { @dark = !@dark; dark_btn.text = @dark ? 'Dark' : 'Normal' }
     ]
   end
 
@@ -293,7 +295,7 @@ class SBEditor < GameWindow
   end
 
   def save_file(path)
-    code = "#{@tiles_x},#{@tiles_y},#{@exit_type},#{@cur_tileset + 1},#{@components[5].text}#"
+    code = "#{@tiles_x},#{@tiles_y},#{@exit_type},#{@cur_tileset + 1},#{@components[5].text}#{@dark ? ',.' : ''}#"
     last_element = get_cell_string(0, 0)
     @added_bgs.each { |bg| code += "#{bg}," }
     code = code.chop + '#'
@@ -362,6 +364,8 @@ class SBEditor < GameWindow
     @tiles = Res.tileset (@cur_tileset + 1).to_s
     @components[5].text = infos[4]
     @components[0..5].each { |c| c.unfocus }
+    @dark = infos.length > 5
+    @components[19].text = @dark ? 'Dark' : 'Normal'
     i = 0; j = 0
     elms.each do |e|
       if e[0] == '_'
