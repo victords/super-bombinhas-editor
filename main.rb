@@ -54,8 +54,7 @@ class SBEditor < GameWindow
     @elements = []
     @cur_element = 1
     @element_index = 0
-    switch_names = %w(Life Key Door GunPowder Crack SaveBombie Attack1 Attack2 Ball BallReceptor ForceField
-    	              Board Hammer Spring Herb Monep)
+    switch_names = %w(Life Key Door GunPowder Crack SaveBombie Attack1 Attack2 Ball BallReceptor ForceField Board Hammer Spring Herb Monep)
     i = 1
     Dir["#{Res.prefix}#{Res.img_dir}el/*"].sort.each do |f|
       el = f.split('/')[-1].chomp('.png')
@@ -72,7 +71,7 @@ class SBEditor < GameWindow
     @cur_tileset = 0
     Dir["#{Res.prefix}#{Res.img_dir}ts/*"].sort.each { |f| @tilesets << Res.img("ts_#{f.split('/')[-1].chomp('.png')}") }
     Res.tileset_dir = 'img/ts'
-    @tiles = Res.tileset '1'
+    @tiles = Res.tileset '1', 16, 16
 
     @components = [
       TextField.new(4, 25, @font, :textField, nil, nil, 1, 1, 10),   # name
@@ -105,7 +104,7 @@ class SBEditor < GameWindow
       Button.new(4, 392, @font, 'Próximo', :button) {
         @cur_tileset += 1
         @cur_tileset = 0 if @cur_tileset == @tilesets.size
-        @tiles = Res.tileset (@cur_tileset + 1).to_s
+        @tiles = Res.tileset (@cur_tileset + 1).to_s, 16, 16
         @cur_element = 1 if @cur_element < 0 or @cur_element > TOTAL_TILES
       },
       Button.new(4, 172, @font, 'Próximo', :button) {
@@ -361,7 +360,7 @@ class SBEditor < GameWindow
     bg_infos.each { |bg| @added_bgs << bg }
     @cur_bg = 0
     @cur_tileset = infos[3].to_i - 1
-    @tiles = Res.tileset (@cur_tileset + 1).to_s
+    @tiles = Res.tileset (@cur_tileset + 1).to_s, 16, 16
     @components[5].text = infos[4]
     @components[0..5].each { |c| c.unfocus }
     @dark = infos.length > 5
@@ -418,7 +417,7 @@ class SBEditor < GameWindow
                 x + 1, y + 31, NULL_COLOR,
                 x + 31, y + 31, NULL_COLOR, 0 if @grid
       if @objects[i][j].back
-        @tiles[@objects[i][j].back[1..2].to_i].draw x, y, 0
+        @tiles[@objects[i][j].back[1..2].to_i].draw x, y, 0, 2, 2
         @font.draw 'b', x + 20, y + 18, 1, 1, 1, BLACK if @grid
       end
       draw_object i, j, x, y
@@ -460,7 +459,7 @@ class SBEditor < GameWindow
     end
     @elements[@element_index].draw 26 + (64 - @elements[@element_index].width) / 2,
                                    435 + (64 - @elements[@element_index].height) / 2, 0
-    @tilesets[@cur_tileset].draw 0, 192, 0, 0.625, 0.625
+    @tilesets[@cur_tileset].draw 0, 192, 0, 1.25, 1.25
     draw_ramp @ramp_area.x, @ramp_area.y, @ramp_area.w, @ramp_area.h, true, false
 
     if @cur_element < 0
@@ -484,7 +483,7 @@ class SBEditor < GameWindow
     obj = @objects[i][j].obj
     if obj
       if obj[0] == 'w' || obj[0] == 'p'
-        @tiles[obj[1..2].to_i].draw x, y, 0
+        @tiles[obj[1..2].to_i].draw x, y, 0, 2, 2
         @font.draw obj[0], x + 20, y - 2, 1, 1, 1, BLACK if @grid
       elsif obj[0] == '!'
         @elements[0].draw x, y, 0
