@@ -422,7 +422,7 @@ class SBEditor < GameWindow
       end
       draw_object i, j, x, y
       if @objects[i][j].fore
-        @tiles[@objects[i][j].fore[1..2].to_i].draw x, y, 0
+        @tiles[@objects[i][j].fore[1..2].to_i].draw x, y, 0, 2, 2
         @font.draw 'f', x + 20, y + 8, 1, 1, 1, BLACK if @grid
       end
       draw_quad x, y, HIDE_COLOR,
