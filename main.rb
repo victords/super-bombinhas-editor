@@ -54,7 +54,7 @@ class SBEditor < GameWindow
     @elements = []
     @cur_element = 1
     @element_index = 0
-    switch_names = %w(Life Key Door GunPowder Crack SaveBombie Attack1 Attack2 Attack3 Ball BallReceptor ForceField Board Hammer Spring Herb Monep JillisStone MountainBombie WindMachine)
+    switch_names = %w(Life Key Door GunPowder Crack SaveBombie Attack1 Attack2 Attack3 Ball BallReceptor ForceField Board Hammer Spring Herb Monep JillisStone MountainBombie WindMachine Puzzle PuzzlePiece)
     i = 1
     Dir["#{Res.prefix}#{Res.img_dir}el/*"].sort.each do |f|
       el = f.split('/')[-1].chomp('.png')
