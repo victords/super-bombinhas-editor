@@ -16,45 +16,62 @@ class SBEditor < GameWindow
   WHITE = 0xffffffff
 
   def initialize
-    super 1240, 720, false
-
+    w, h = `xrandr`.scan(/current (\d+) x (\d+)/).flatten.map { |x| x.to_i }
+    super w, h, true
+    Res.retro_images = true
     @tiles_x = @tiles_y = 300
-    @map = Map.new(32, 32, @tiles_x, @tiles_y, EDITOR_WIDTH, EDITOR_HEIGHT)
+    @map = Map.new(32, 32, @tiles_x, @tiles_y, w, h)
     @objects = Array.new(@tiles_x) {
       Array.new(@tiles_y) {
         Cell.new
       }
     }
-    @margin = Vector.new 200, 0
-
-    @tile_types = %w(Wall Passable Back Fore Hide)
-    @tile_type = 0
-    @exit_types = %w(Acima Direita Abaixo Esquerda Nenhuma)
-    @exit_type = 1
-    @editable_area = Rectangle.new(200, 0, EDITOR_WIDTH, EDITOR_HEIGHT)
-    @element_area = Rectangle.new(26, 435, 64, 64)
-    @ramp_area = Rectangle.new(118, 435, 64, 64)
-    @tile_areas = []
-    (0..99).each { |i| @tile_areas[i] = Rectangle.new((i % 10) * 20, 192 + (i / 10) * 20, 20, 20) }
 
     @ramps = []
-    @switch_codes = []
-    @grid = true
-    @dark = false
-    @dir = '/home/victor/Projects/super-bombinhas/data/stage'
-    @msg = ''
+    @dir = '../super-bombinhas/data/stage'
 
-    @font = Res.font :BankGothicMedium, 16
+    @font1 = Res.font :minecraftia, 6
+    @font2 = Res.font :minecraftia, 10
 
     @bgs = []
-    @cur_bg = 0
-    @added_bgs = []
     Dir["#{Res.prefix}#{Res.img_dir}bg/*"].sort.each { |f| @bgs << Res.img("bg_#{f.split('/')[-1]}", false, false, '') }
 
+    ################################# Tileset #################################
+    ts_files = Dir["#{Res.prefix}#{Res.tileset_dir}*"].sort
+    @tilesets = []
+    options = []
+    ts_files.each do |f|
+      num = f.split('/')[-1].chomp('.png')
+      @tilesets << Res.tileset(num, 16, 16)
+      options << num
+    end
+    @cur_tileset = 0
+    @tileset_panel = Panel.new(10, 10, 48, 300, [
+      Button.new(x: 4, y: 38, img: :btn1, font: @font1, text: 'WALL', scale_x: 2, scale_y: 2) do
+        # setar elemento atual para wall
+      end,
+      Button.new(x: 4, y: 38 + 44, img: :btn1, font: @font1, text: 'PASS', scale_x: 2, scale_y: 2) do
+        # setar elemento atual para passable
+      end,
+      Button.new(x: 4, y: 38 + 88, img: :btn1, font: @font1, text: 'HIDE', scale_x: 2, scale_y: 2) do
+        # setar elemento atual para hide
+      end,
+      (other_tile_btn = Button.new(x: 4, y: 38 + 132, img: :btn1, font: @font1, text: 'OTHER', scale_x: 2, scale_y: 2) do
+        # setar elemento atual para wall
+      end),
+      (ramp_btn = Button.new(x: 4, y: 38 + 176, img: :btn1, font: @font1, text: 'RAMP', scale_x: 2, scale_y: 2) do
+        # setar elemento atual para wall
+      end),
+      DropDownList.new(x: 4, y: 4, font: @font2, img: :ddl, opt_img: :ddlOpt, options: options, text_margin: 4, retro: true, scale_x: 2, scale_y: 2) do |_, v|
+        @cur_tileset = options.index(v)
+      end,
+    ], nil, nil, nil, nil, nil, :west)
+    ###########################################################################
+
+=begin
     @elements = []
     @cur_element = 1
     @element_index = 0
-    switch_names = %w(Life Key Door GunPowder Crack SaveBombie Attack1 Attack2 Attack3 Ball BallReceptor ForceField Board Hammer Spring Herb Monep JillisStone MountainBombie WindMachine Puzzle PuzzlePiece)
     i = 1
     Dir["#{Res.prefix}#{Res.img_dir}el/*"].sort.each do |f|
       el = f.split('/')[-1].chomp('.png')
@@ -187,6 +204,7 @@ class SBEditor < GameWindow
       Button.new(604, 611, @font, 'Grid/Codes on/off', :button) { @grid = !@grid },
       dark_btn = Button.new(604, 641, @font, 'Normal', :button) { @dark = !@dark; dark_btn.text = @dark ? 'Dark' : 'Normal' }
     ]
+=end
   end
 
   def needs_cursor?
@@ -198,6 +216,9 @@ class SBEditor < GameWindow
     Mouse.update
     close if KB.key_pressed? Gosu::KbEscape
 
+    @tileset_panel.update
+
+=begin
     ctrl = (KB.key_down? Gosu::KbLeftControl or KB.key_down? Gosu::KbRightControl)
     if Mouse.button_down? :left
       if Mouse.button_pressed? :left
@@ -275,6 +296,7 @@ class SBEditor < GameWindow
     end
 
     @components.each { |c| c.update }
+=end
   end
 
   def check_fill(i, j, code)
@@ -410,6 +432,10 @@ class SBEditor < GameWindow
 
   def draw
     clear 0xffffff
+
+    @tileset_panel.draw
+
+=begin
     @map.foreach do |i, j, x, y|
       x += @margin.x
       draw_quad x + 1, y + 1, NULL_COLOR,
@@ -477,6 +503,7 @@ class SBEditor < GameWindow
     @font.draw_rel @tile_types[@tile_type], 100, 150, 0, 0.5, 0, 1, 1, BLACK
     @font.draw "Saída: #{@exit_types[@exit_type]}", 4, 570, 0, 1, 1, BLACK
     @font.draw 'BGM:', 604, 680, 0, 1, 1, BLACK
+=end
   end
 
   def draw_object(i, j, x, y)
