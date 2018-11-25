@@ -16,7 +16,7 @@ class SBEditor < GameWindow
   WHITE = 0xffffffff
 
   def initialize
-    w, h = `xrandr`.scan(/current (\d+) x (\d+)/).flatten.map { |x| x.to_i }
+    w, h = 1366, 768 # `xrandr`.scan(/current (\d+) x (\d+)/).flatten.map { |x| x.to_i }
     super w, h, true
     Res.retro_images = true
     @tiles_x = @tiles_y = 300
@@ -35,6 +35,14 @@ class SBEditor < GameWindow
 
     @bgs = []
     Dir["#{Res.prefix}#{Res.img_dir}bg/*"].sort.each { |f| @bgs << Res.img("bg_#{f.split('/')[-1]}", false, false, '') }
+
+    ################################# Arquivo #################################
+    @file_panel = Panel.new(0, 10, 0, 0, [
+      TextField.new(x: -200, y: 4, font: @font2, img: :textField, margin_x: 2, margin_y: 2, scale_x: 2, scale_y: 2, text: '1'),
+      TextField.new(x: -150, y: 4, font: @font2, img: :textField, margin_x: 2, margin_y: 2, scale_x: 2, scale_y: 2, text: '1'),
+      TextField.new(x: -100, y: 4, font: @font2, img: :textField, margin_x: 2, margin_y: 2, scale_x: 2, scale_y: 2, text: '1'),
+    ], nil, nil, nil, nil, nil, :north)
+    ###########################################################################
 
     ################################# Tileset #################################
     ts_files = Dir["#{Res.prefix}#{Res.tileset_dir}*"].sort
@@ -216,6 +224,7 @@ class SBEditor < GameWindow
     Mouse.update
     close if KB.key_pressed? Gosu::KbEscape
 
+    @file_panel.update
     @tileset_panel.update
 
 =begin
@@ -431,10 +440,12 @@ class SBEditor < GameWindow
   end
 
   def draw
-    clear 0xffffff
+    clear 0xddddff
 
+    @file_panel.draw
     @tileset_panel.draw
 
+    @font1.draw('Mundo:', @file_panel.x, @file_panel.y, 0)
 =begin
     @map.foreach do |i, j, x, y|
       x += @margin.x
