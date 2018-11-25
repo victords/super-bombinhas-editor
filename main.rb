@@ -16,7 +16,7 @@ class SBEditor < GameWindow
   WHITE = 0xffffffff
 
   def initialize
-    w, h = 1366, 768 # `xrandr`.scan(/current (\d+) x (\d+)/).flatten.map { |x| x.to_i }
+    w, h = `xrandr`.scan(/current (\d+) x (\d+)/).flatten.map { |x| x.to_i }
     super w, h, true
     Res.retro_images = true
     @tiles_x = @tiles_y = 300
@@ -28,54 +28,116 @@ class SBEditor < GameWindow
     }
 
     @ramps = []
-    @dir = '../super-bombinhas/data/stage'
+    @dir = '../super-bombinhas/data'
 
     @font1 = Res.font :minecraftia, 6
     @font2 = Res.font :minecraftia, 10
 
+    bg_files = Dir["#{Res.prefix}#{Res.img_dir}bg/*"].sort
     @bgs = []
-    Dir["#{Res.prefix}#{Res.img_dir}bg/*"].sort.each { |f| @bgs << Res.img("bg_#{f.split('/')[-1]}", false, false, '') }
+    bg_options = []
+    bg_files.each do |f|
+      num = f.split('/')[-1].chomp('.png')
+      @bgs << Res.img("bg_#{num}")
+      bg_options << num
+    end
+    @cur_bg = 0
 
-    ################################# Arquivo #################################
-    @file_panel = Panel.new(0, 10, 0, 0, [
-      TextField.new(x: -200, y: 4, font: @font2, img: :textField, margin_x: 2, margin_y: 2, scale_x: 2, scale_y: 2, text: '1'),
-      TextField.new(x: -150, y: 4, font: @font2, img: :textField, margin_x: 2, margin_y: 2, scale_x: 2, scale_y: 2, text: '1'),
-      TextField.new(x: -100, y: 4, font: @font2, img: :textField, margin_x: 2, margin_y: 2, scale_x: 2, scale_y: 2, text: '1'),
-    ], nil, nil, nil, nil, nil, :north)
-    ###########################################################################
+    bgm_options = []
+    Dir["#{@dir}/song/s*"].sort.each{ |f| bgm_options << f.split('/')[-1].chomp('.ogg') }
+    @cur_bgm = 0
 
-    ################################# Tileset #################################
+    exit_options = ['/\\', '>', '\\/', '<', '-']
+
     ts_files = Dir["#{Res.prefix}#{Res.tileset_dir}*"].sort
     @tilesets = []
-    options = []
+    ts_options = []
     ts_files.each do |f|
       num = f.split('/')[-1].chomp('.png')
       @tilesets << Res.tileset(num, 16, 16)
-      options << num
+      ts_options << num
     end
     @cur_tileset = 0
-    @tileset_panel = Panel.new(10, 10, 48, 300, [
-      Button.new(x: 4, y: 38, img: :btn1, font: @font1, text: 'WALL', scale_x: 2, scale_y: 2) do
-        # setar elemento atual para wall
+
+    @panels = [
+
+    ################################## Geral ##################################
+    Panel.new(0, 0, 500, 48, [
+      Label.new(x: 10, y: 0, font: @font2, text: 'W', scale_x: 2, scale_y: 2, anchor: :left),
+      TextField.new(x: 20, y: 0, img: :textField, font: @font2, text: '300', margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, anchor: :left),
+      Label.new(x: 70, y: 0, font: @font2, text: 'H', scale_x: 2, scale_y: 2, anchor: :left),
+      TextField.new(x: 86, y: 0, img: :textField, font: @font2, text: '300', margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, anchor: :left),
+      Label.new(x: 136, y: 0, font: @font2, text: 'BG', scale_x: 2, scale_y: 2, anchor: :left),
+      DropDownList.new(x: 160, y: 0, font: @font2, img: :ddl, opt_img: :ddlOpt, options: bg_options, text_margin: 4, scale_x: 2, scale_y: 2, anchor: :left) do |_, v|
+        @cur_bg = bg_options.index(v)
       end,
-      Button.new(x: 4, y: 38 + 44, img: :btn1, font: @font1, text: 'PASS', scale_x: 2, scale_y: 2) do
-        # setar elemento atual para passable
+      Label.new(x: 204, y: 0, font: @font2, text: 'BGM', scale_x: 2, scale_y: 2, anchor: :left),
+      DropDownList.new(x: 240, y: 0, font: @font2, img: :ddl, opt_img: :ddlOpt, options: bgm_options, text_margin: 4, scale_x: 2, scale_y: 2, anchor: :left) do |_, v|
+        @cur_bgm = bgm_options.index(v)
       end,
-      Button.new(x: 4, y: 38 + 88, img: :btn1, font: @font1, text: 'HIDE', scale_x: 2, scale_y: 2) do
-        # setar elemento atual para hide
+      Label.new(x: 285, y: 0, font: @font2, text: 'Exit', scale_x: 2, scale_y: 2, anchor: :left),
+      DropDownList.new(x: 325, y: 0, font: @font2, img: :ddl, opt_img: :ddlOpt, options: exit_options, text_margin: 4, scale_x: 2, scale_y: 2, anchor: :left) do |_, v|
+        @cur_exit = exit_options.index(v)
       end,
-      (other_tile_btn = Button.new(x: 4, y: 38 + 132, img: :btn1, font: @font1, text: 'OTHER', scale_x: 2, scale_y: 2) do
-        # setar elemento atual para wall
-      end),
-      (ramp_btn = Button.new(x: 4, y: 38 + 176, img: :btn1, font: @font1, text: 'RAMP', scale_x: 2, scale_y: 2) do
-        # setar elemento atual para wall
-      end),
-      DropDownList.new(x: 4, y: 4, font: @font2, img: :ddl, opt_img: :ddlOpt, options: options, text_margin: 4, retro: true, scale_x: 2, scale_y: 2) do |_, v|
-        @cur_tileset = options.index(v)
-      end,
-    ], nil, nil, nil, nil, nil, :west)
+      Label.new(x: 30, y: 0, font: @font2, text: 'Dark', scale_x: 2, scale_y: 2, anchor: :right),
+      ToggleButton.new(x: 10, y: 0, img: :chk, scale_x: 2, scale_y: 2, anchor: :right)
+    ], :pnl, :tiled, true, 2, 2, :top),
     ###########################################################################
 
+    ################################# Arquivo #################################
+    Panel.new(0, 0, 460, 48, [
+      Label.new(x: 7, y: 0, font: @font2, text: 'World', scale_x: 2, scale_y: 2, anchor: :left),
+      TextField.new(x: 57, y: 0, font: @font2, img: :textField, margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, text: '1', anchor: :left),
+      Label.new(x: 107, y: 0, font: @font2, text: 'Stage', scale_x: 2, scale_y: 2, anchor: :left),
+      TextField.new(x: 157, y: 0, font: @font2, img: :textField, margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, text: '1', anchor: :left),
+      Label.new(x: 207, y: 0, font: @font2, text: 'Section', scale_x: 2, scale_y: 2, anchor: :left),
+      TextField.new(x: 277, y: 0, font: @font2, img: :textField, margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, text: '1', anchor: :left),
+      Button.new(x: 48, y: 0, img: :btn1, font: @font1, text: 'LOAD', scale_x: 2, scale_y: 2, anchor: :right),
+      Button.new(x: 4, y: 0, img: :btn1, font: @font1, text: 'SAVE', scale_x: 2, scale_y: 2, anchor: :right),
+    ], :pnl, :tiled, true, 2, 2, :bottom),
+    ###########################################################################
+
+    ################################# Tileset #################################
+    Panel.new(0, 0, 48, 300, [
+      DropDownList.new(x: 0, y: 4, font: @font2, img: :ddl, opt_img: :ddlOpt, options: ts_options, text_margin: 4, scale_x: 2, scale_y: 2, anchor: :top) do |_, v|
+        @cur_tileset = ts_options.index(v)
+      end,
+      Button.new(x: 0, y: 38, img: :btn1, font: @font1, text: 'WALL', scale_x: 2, scale_y: 2, anchor: :top) do
+        # setar elemento atual para wall
+      end,
+      Button.new(x: 0, y: 38 + 44, img: :btn1, font: @font1, text: 'PASS', scale_x: 2, scale_y: 2, anchor: :top) do
+        # setar elemento atual para passable
+      end,
+      Button.new(x: 0, y: 38 + 88, img: :btn1, font: @font1, text: 'HIDE', scale_x: 2, scale_y: 2, anchor: :top) do
+        # setar elemento atual para hide
+      end,
+      (other_tile_btn = Button.new(x: 0, y: 38 + 132, img: :btn1, font: @font1, text: 'OTHER', scale_x: 2, scale_y: 2, anchor: :top) do
+        # abrir tiles à direita
+      end),
+      (ramp_btn = Button.new(x: 0, y: 38 + 176, img: :btn1, font: @font1, text: 'RAMP', scale_x: 2, scale_y: 2, anchor: :top) do
+        # setar elemento atual para rampa
+      end),
+    ], :pnl, :tiled, true, 2, 2, :left),
+    ###########################################################################
+
+    ################################ Elementos ################################
+    Panel.new(0, 0, 48, 300, [
+      Button.new(x: 0, y: 4, img: :btn1, font: @font1, text: 'BOMB', scale_x: 2, scale_y: 2, anchor: :top) do
+
+      end,
+      Label.new(x: 0, y: 48, font: @font1, text: 'Default', scale_x: 2, scale_y: 2, anchor: :top),
+      ToggleButton.new(x: 0, y: 60, img: :chk, checked: true, scale_x: 2, scale_y: 2, anchor: :top),
+      Button.new(x: 0, y: 100, img: :btn1, font: @font1, text: 'ELEM.', scale_x: 2, scale_y: 2, anchor: :top) do
+
+      end,
+      Button.new(x: 0, y: 144, img: :btn1, font: @font1, text: 'ENEMY', scale_x: 2, scale_y: 2, anchor: :top) do
+
+      end,
+      TextField.new(x: 0, y: 188, img: :textField, font: @font2, margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, anchor: :top)
+    ], :pnl, :tiled, true, 2, 2, :right)
+    ###########################################################################
+
+    ]
 =begin
     @elements = []
     @cur_element = 1
@@ -224,8 +286,7 @@ class SBEditor < GameWindow
     Mouse.update
     close if KB.key_pressed? Gosu::KbEscape
 
-    @file_panel.update
-    @tileset_panel.update
+    @panels.each(&:update)
 
 =begin
     ctrl = (KB.key_down? Gosu::KbLeftControl or KB.key_down? Gosu::KbRightControl)
@@ -442,10 +503,11 @@ class SBEditor < GameWindow
   def draw
     clear 0xddddff
 
-    @file_panel.draw
-    @tileset_panel.draw
+    @panels.each do |p|
+      a = Mouse.over?(p.x, p.y, p.w, p.h) ? 255 : 127
+      p.draw(a)
+    end
 
-    @font1.draw('Mundo:', @file_panel.x, @file_panel.y, 0)
 =begin
     @map.foreach do |i, j, x, y|
       x += @margin.x
