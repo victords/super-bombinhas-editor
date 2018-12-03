@@ -4,9 +4,6 @@ include MiniGL
 Cell = Struct.new(:back, :fore, :obj, :hide)
 
 class SBEditor < GameWindow
-  EDITOR_WIDTH = 1024
-  EDITOR_HEIGHT = 576
-  TOTAL_TILES = 100
   NULL_COLOR = 0x11000000
   HIDE_COLOR = 0x33000099
   RAMP_COLOR = 0x66000000
@@ -16,11 +13,12 @@ class SBEditor < GameWindow
   WHITE = 0xffffffff
 
   def initialize
-    w, h = `xrandr`.scan(/current (\d+) x (\d+)/).flatten.map { |x| x.to_i }
-    super w, h, true
+    @scr_w, @scr_h = `xrandr`.scan(/current (\d+) x (\d+)/).flatten.map(&:to_i)
+    super @scr_w, @scr_h, true
     Res.retro_images = true
+
     @tiles_x = @tiles_y = 300
-    @map = Map.new(32, 32, @tiles_x, @tiles_y, w, h)
+    @map = Map.new(32, 32, @tiles_x, @tiles_y, @scr_w, @scr_h)
     @objects = Array.new(@tiles_x) {
       Array.new(@tiles_y) {
         Cell.new
@@ -47,7 +45,7 @@ class SBEditor < GameWindow
     Dir["#{@dir}/song/s*"].sort.each{ |f| bgm_options << f.split('/')[-1].chomp('.ogg') }
     @cur_bgm = 0
 
-    exit_options = ['/\\', '>', '\\/', '<', '-']
+    exit_options = %w(/\\ > \\/ < -)
 
     ts_files = Dir["#{Res.prefix}#{Res.tileset_dir}*"].sort
     @tilesets = []
@@ -59,222 +57,223 @@ class SBEditor < GameWindow
     end
     @cur_tileset = 0
 
+    @cur_exit = 0
+
+    el_files = Dir["#{Res.prefix}#{Res.img_dir}el/*"]
+    @elements = []
+    el_files.each do |f|
+      name = f.split('/')[-1].chomp('.png')
+      next if name == 'Bomb'
+      @elements << Res.img("el_#{name}")
+    end
+    @bomb = Res.img(:el_Bomb)
+
+    save_confirm = false
+
     @panels = [
 
-    ################################## Geral ##################################
-    Panel.new(0, 0, 500, 48, [
-      Label.new(x: 10, y: 0, font: @font2, text: 'W', scale_x: 2, scale_y: 2, anchor: :left),
-      TextField.new(x: 20, y: 0, img: :textField, font: @font2, text: '300', margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, anchor: :left),
-      Label.new(x: 70, y: 0, font: @font2, text: 'H', scale_x: 2, scale_y: 2, anchor: :left),
-      TextField.new(x: 86, y: 0, img: :textField, font: @font2, text: '300', margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, anchor: :left),
-      Label.new(x: 136, y: 0, font: @font2, text: 'BG', scale_x: 2, scale_y: 2, anchor: :left),
-      DropDownList.new(x: 160, y: 0, font: @font2, img: :ddl, opt_img: :ddlOpt, options: bg_options, text_margin: 4, scale_x: 2, scale_y: 2, anchor: :left) do |_, v|
-        @cur_bg = bg_options.index(v)
-      end,
-      Label.new(x: 204, y: 0, font: @font2, text: 'BGM', scale_x: 2, scale_y: 2, anchor: :left),
-      DropDownList.new(x: 240, y: 0, font: @font2, img: :ddl, opt_img: :ddlOpt, options: bgm_options, text_margin: 4, scale_x: 2, scale_y: 2, anchor: :left) do |_, v|
-        @cur_bgm = bgm_options.index(v)
-      end,
-      Label.new(x: 285, y: 0, font: @font2, text: 'Exit', scale_x: 2, scale_y: 2, anchor: :left),
-      DropDownList.new(x: 325, y: 0, font: @font2, img: :ddl, opt_img: :ddlOpt, options: exit_options, text_margin: 4, scale_x: 2, scale_y: 2, anchor: :left) do |_, v|
-        @cur_exit = exit_options.index(v)
-      end,
-      Label.new(x: 30, y: 0, font: @font2, text: 'Dark', scale_x: 2, scale_y: 2, anchor: :right),
-      ToggleButton.new(x: 10, y: 0, img: :chk, scale_x: 2, scale_y: 2, anchor: :right)
-    ], :pnl, :tiled, true, 2, 2, :top),
-    ###########################################################################
+      ################################## Geral ##################################
+      Panel.new(0, 0, 500, 48, [
+        Label.new(x: 10, y: 0, font: @font2, text: 'W', scale_x: 2, scale_y: 2, anchor: :left),
+        (txt_w = TextField.new(x: 20, y: 0, img: :textField, font: @font2, text: '300', allowed_chars: '0123456789', margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, anchor: :left) do |t|
+          reset_map(t.to_i, @tiles_y)
+        end),
+        Label.new(x: 70, y: 0, font: @font2, text: 'H', scale_x: 2, scale_y: 2, anchor: :left),
+        (txt_h = TextField.new(x: 86, y: 0, img: :textField, font: @font2, text: '300', allowed_chars: '0123456789', margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, anchor: :left) do |t|
+          reset_map(@tiles_x, t.to_i)
+        end),
+        Label.new(x: 136, y: 0, font: @font2, text: 'BG', scale_x: 2, scale_y: 2, anchor: :left),
+        (ddl_bg = DropDownList.new(x: 160, y: 0, font: @font2, img: :ddl, opt_img: :ddlOpt, options: bg_options, text_margin: 4, scale_x: 2, scale_y: 2, anchor: :left) do |_, v|
+          @cur_bg = bg_options.index(v)
+        end),
+        Label.new(x: 204, y: 0, font: @font2, text: 'BGM', scale_x: 2, scale_y: 2, anchor: :left),
+        (ddl_bgm = DropDownList.new(x: 240, y: 0, font: @font2, img: :ddl, opt_img: :ddlOpt, options: bgm_options, text_margin: 4, scale_x: 2, scale_y: 2, anchor: :left) do |_, v|
+          @cur_bgm = bgm_options.index(v)
+        end),
+        Label.new(x: 285, y: 0, font: @font2, text: 'Exit', scale_x: 2, scale_y: 2, anchor: :left),
+        (ddl_exit = DropDownList.new(x: 325, y: 0, font: @font2, img: :ddl, opt_img: :ddlOpt, options: exit_options, text_margin: 4, scale_x: 2, scale_y: 2, anchor: :left) do |_, v|
+          @cur_exit = exit_options.index(v)
+        end),
+        Label.new(x: 30, y: 0, font: @font2, text: 'Dark', scale_x: 2, scale_y: 2, anchor: :right),
+        (chk_dark = ToggleButton.new(x: 10, y: 0, img: :chk, scale_x: 2, scale_y: 2, anchor: :right))
+      ], :pnl, :tiled, true, 2, 2, :top),
+      ###########################################################################
 
-    ################################# Arquivo #################################
-    Panel.new(0, 0, 460, 48, [
-      Label.new(x: 7, y: 0, font: @font2, text: 'World', scale_x: 2, scale_y: 2, anchor: :left),
-      TextField.new(x: 57, y: 0, font: @font2, img: :textField, margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, text: '1', anchor: :left),
-      Label.new(x: 107, y: 0, font: @font2, text: 'Stage', scale_x: 2, scale_y: 2, anchor: :left),
-      TextField.new(x: 157, y: 0, font: @font2, img: :textField, margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, text: '1', anchor: :left),
-      Label.new(x: 207, y: 0, font: @font2, text: 'Section', scale_x: 2, scale_y: 2, anchor: :left),
-      TextField.new(x: 277, y: 0, font: @font2, img: :textField, margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, text: '1', anchor: :left),
-      Button.new(x: 48, y: 0, img: :btn1, font: @font1, text: 'LOAD', scale_x: 2, scale_y: 2, anchor: :right),
-      Button.new(x: 4, y: 0, img: :btn1, font: @font1, text: 'SAVE', scale_x: 2, scale_y: 2, anchor: :right),
-    ], :pnl, :tiled, true, 2, 2, :bottom),
-    ###########################################################################
+      ################################# Tileset #################################
+      Panel.new(0, 0, 48, 300, [
+        (ddl_ts = DropDownList.new(x: 0, y: 4, font: @font2, img: :ddl, opt_img: :ddlOpt, options: ts_options, text_margin: 4, scale_x: 2, scale_y: 2, anchor: :top) do |_, v|
+          @cur_tileset = ts_options.index(v)
+        end),
+        Button.new(x: 0, y: 38, img: :btn1, font: @font1, text: 'WALL', scale_x: 2, scale_y: 2, anchor: :top) do
+          # setar elemento atual para wall
+        end,
+        Button.new(x: 0, y: 38 + 44, img: :btn1, font: @font1, text: 'PASS', scale_x: 2, scale_y: 2, anchor: :top) do
+          # setar elemento atual para passable
+        end,
+        Button.new(x: 0, y: 38 + 88, img: :btn1, font: @font1, text: 'HIDE', scale_x: 2, scale_y: 2, anchor: :top) do
+          # setar elemento atual para hide
+        end,
+        (other_tile_btn = Button.new(x: 0, y: 38 + 132, img: :btn1, font: @font1, text: 'OTHER', scale_x: 2, scale_y: 2, anchor: :top) do
+          # abrir tiles à direita
+        end),
+        (ramp_btn = Button.new(x: 0, y: 38 + 176, img: :btn1, font: @font1, text: 'RAMP', scale_x: 2, scale_y: 2, anchor: :top) do
+          # setar elemento atual para rampa
+        end),
+      ], :pnl, :tiled, true, 2, 2, :left),
+      ###########################################################################
 
-    ################################# Tileset #################################
-    Panel.new(0, 0, 48, 300, [
-      DropDownList.new(x: 0, y: 4, font: @font2, img: :ddl, opt_img: :ddlOpt, options: ts_options, text_margin: 4, scale_x: 2, scale_y: 2, anchor: :top) do |_, v|
-        @cur_tileset = ts_options.index(v)
-      end,
-      Button.new(x: 0, y: 38, img: :btn1, font: @font1, text: 'WALL', scale_x: 2, scale_y: 2, anchor: :top) do
-        # setar elemento atual para wall
-      end,
-      Button.new(x: 0, y: 38 + 44, img: :btn1, font: @font1, text: 'PASS', scale_x: 2, scale_y: 2, anchor: :top) do
-        # setar elemento atual para passable
-      end,
-      Button.new(x: 0, y: 38 + 88, img: :btn1, font: @font1, text: 'HIDE', scale_x: 2, scale_y: 2, anchor: :top) do
-        # setar elemento atual para hide
-      end,
-      (other_tile_btn = Button.new(x: 0, y: 38 + 132, img: :btn1, font: @font1, text: 'OTHER', scale_x: 2, scale_y: 2, anchor: :top) do
-        # abrir tiles à direita
-      end),
-      (ramp_btn = Button.new(x: 0, y: 38 + 176, img: :btn1, font: @font1, text: 'RAMP', scale_x: 2, scale_y: 2, anchor: :top) do
-        # setar elemento atual para rampa
-      end),
-    ], :pnl, :tiled, true, 2, 2, :left),
-    ###########################################################################
-
-    ################################ Elementos ################################
-    Panel.new(0, 0, 48, 300, [
-      Button.new(x: 0, y: 4, img: :btn1, font: @font1, text: 'BOMB', scale_x: 2, scale_y: 2, anchor: :top) do
-
-      end,
-      Label.new(x: 0, y: 48, font: @font1, text: 'Default', scale_x: 2, scale_y: 2, anchor: :top),
-      ToggleButton.new(x: 0, y: 60, img: :chk, checked: true, scale_x: 2, scale_y: 2, anchor: :top),
-      Button.new(x: 0, y: 100, img: :btn1, font: @font1, text: 'ELEM.', scale_x: 2, scale_y: 2, anchor: :top) do
-
-      end,
-      Button.new(x: 0, y: 144, img: :btn1, font: @font1, text: 'ENEMY', scale_x: 2, scale_y: 2, anchor: :top) do
-
-      end,
-      TextField.new(x: 0, y: 188, img: :textField, font: @font2, margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, anchor: :top)
-    ], :pnl, :tiled, true, 2, 2, :right)
-    ###########################################################################
-
-    ]
-=begin
-    @elements = []
-    @cur_element = 1
-    @element_index = 0
-    i = 1
-    Dir["#{Res.prefix}#{Res.img_dir}el/*"].sort.each do |f|
-      el = f.split('/')[-1].chomp('.png')
-      if el == 'Bomb'
-        @elements.unshift Res.img("el_#{el}")
-      else
-        @elements << Res.img("el_#{el}")
-        @switch_codes << i if switch_names.index(el)
-        i += 1
-      end
-    end
-
-    @tilesets = []
-    @cur_tileset = 0
-    Dir["#{Res.prefix}#{Res.img_dir}ts/*"].sort.each { |f| @tilesets << Res.img("ts_#{f.split('/')[-1].chomp('.png')}") }
-    Res.tileset_dir = 'img/ts'
-    @tiles = Res.tileset '1', 16, 16
-
-    @components = [
-      TextField.new(4, 25, @font, :textField, nil, nil, 1, 1, 10),   # name
-      TextField.new(4, 65, @font, :textField, nil, nil, 1, 1, 3),    # tiles x
-      TextField.new(4, 105, @font, :textField, nil, nil, 1, 1, 3),   # tiles y
-      TextField.new(4, 536, @font, :textField, nil, nil, 1, 1, 50) { @cur_element = TOTAL_TILES + @element_index + 1 }, # params
-      TextField.new(4, 554, @font, :textField, nil, nil, 1, 1, 4) { @cur_element = -1 }, # ramp
-      TextField.new(604, 700, @font, :textField, nil, nil, 1, 1, 2), # bgm
-      Button.new(4, 125, @font, 'Gerar Mapa', :button) {
-        tiles_x = @components[1].text.to_i; tiles_y = @components[2].text.to_i
-        if tiles_x < @tiles_x
-          @objects = @objects[0...tiles_x]
-        elsif tiles_x > @tiles_x
-          min_y = tiles_y < @tiles_y ? tiles_y : @tiles_y
-          (@tiles_x...tiles_x).each do |i|
-            @objects[i] = []
-            (0...min_y).each { |j| @objects[i][j] = Cell.new }
-          end
-        end
-        if tiles_y < @tiles_y
-          @objects.map! { |o| o[0...tiles_y] }
-        elsif tiles_y > @tiles_y
-          @objects.each do |o|
-            (@tiles_y...tiles_y).each { |j| o[j] = Cell.new }
-          end
-        end
-        @map = Map.new 32, 32, tiles_x, tiles_y, EDITOR_WIDTH, EDITOR_HEIGHT
-        @tiles_x = tiles_x; @tiles_y = tiles_y
-      },
-      Button.new(4, 392, @font, 'Próximo', :button) {
-        @cur_tileset += 1
-        @cur_tileset = 0 if @cur_tileset == @tilesets.size
-        @tiles = Res.tileset (@cur_tileset + 1).to_s, 16, 16
-        @cur_element = 1 if @cur_element < 0 or @cur_element > TOTAL_TILES
-      },
-      Button.new(4, 172, @font, 'Próximo', :button) {
-        @tile_type += 1
-        @tile_type = 0 if @tile_type == @tile_types.size
-        @cur_element = 1 if @cur_element < 0 or @cur_element > TOTAL_TILES
-      },
-      Button.new(4, 500, @font, 'Próximo', :button) {
-        @element_index += 1
-        @element_index = 0 if @element_index == @elements.size
-        @cur_element = TOTAL_TILES + @element_index + 1
-        @components[3].text = ''
-      },
-      Button.new(4, 518, @font, 'Anterior', :button) {
-        @element_index -= 1
-        @element_index = @elements.size - 1 if @element_index < 0
-        @cur_element = TOTAL_TILES + @element_index + 1
-        @components[3].text = ''
-      },
-      Button.new(4, 588, @font, 'Próximo', :button) {
-        @exit_type += 1
-        @exit_type = 0 if @exit_type == @exit_types.size
-      },
-      Button.new(204, 680, @font, 'Próximo', :button) {
-        @cur_bg += 1
-        @cur_bg = 0 if @cur_bg == @bgs.size
-      },
-      Button.new(204, 700, @font, 'Adicionar', :button) {
-        @added_bgs << "#{@cur_bg + 1}" if @added_bgs.size < 5
-      },
-      Button.new(404, 700, @font, 'Remover', :button) {
-        @added_bgs.pop
-      },
-      Button.new(4, 645, @font, 'Salvar', :button) {
-        name = @components[0].text
-        if name.empty?
-          @msg = 'Dê um nome à fase!'
-        elsif @added_bgs.empty?
-          @msg = 'Escolha um BG!'
-        elsif @components[5].text.empty?
-          @msg = 'Escolha a BGM!'
-        else
-          path = "#{@dir}/#{name.gsub('|', '/')}"
-          if @save_confirm
-            @save_confirm = false
-            File.delete path
-            save_file path
-          elsif File.exist? path
-            @msg = 'Salvar por cima?'
-            @save_confirm = true
-          else
-            save_file path
-          end
-        end
-      },
-      Button.new(4, 675, @font, 'Abrir', :button) {
-        name = @components[0].text
-        if name.empty?
-          @msg = 'Digite o nome!'
-        else
-          path = "#{@dir}/#{name.gsub('|', '/')}"
+      ################################# Arquivo #################################
+      Panel.new(0, 0, 460, 48, [
+        Label.new(x: 7, y: 0, font: @font2, text: 'World', scale_x: 2, scale_y: 2, anchor: :left),
+        (txt_world = TextField.new(x: 57, y: 0, font: @font2, img: :textField, margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, text: '1', anchor: :left)),
+        Label.new(x: 107, y: 0, font: @font2, text: 'Stage', scale_x: 2, scale_y: 2, anchor: :left),
+        (txt_stage = TextField.new(x: 157, y: 0, font: @font2, img: :textField, margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, text: '1', anchor: :left)),
+        Label.new(x: 207, y: 0, font: @font2, text: 'Section', scale_x: 2, scale_y: 2, anchor: :left),
+        (txt_section = TextField.new(x: 277, y: 0, font: @font2, img: :textField, margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, text: '1', anchor: :left)),
+        Button.new(x: 48, y: 0, img: :btn1, font: @font1, text: 'LOAD', scale_x: 2, scale_y: 2, anchor: :right) do
+          path = "#{@dir}/stage/#{txt_world.text}/#{txt_stage.text}-#{txt_section.text}"
           if File.exist? path
-            open_file path
-          else
-            @msg = 'O arquivo não existe!'
+            f = File.open(path)
+            all = f.readline.chomp.split('#'); f.close
+            infos = all[0].split(','); bg_infos = all[1].split(','); elms = all[2].split(';')
+            @tiles_x = infos[0].to_i; @tiles_y = infos[1].to_i
+            @map = Map.new(32, 32, @tiles_x, @tiles_y, @scr_w, @scr_h)
+            txt_w.text = infos[0]; txt_h.text = infos[1]
+            @objects = Array.new(@tiles_x) {
+              Array.new(@tiles_y) {
+                Cell.new
+              }
+            }
+
+            @cur_exit = infos[2].to_i
+            ddl_exit.value = exit_options[@cur_exit]
+
+            ddl_bg.value = bg_infos[0]
+            @cur_bg = bg_options.index(ddl_bg.value)
+            ddl_ts.value = infos[3]
+            @cur_tileset = ts_options.index(ddl_ts.value)
+            ddl_bgm.value = infos[4]
+            @cur_bgm = bgm_options.index(ddl_bgm.value)
+
+            @dark = infos.length > 5
+            chk_dark.checked = @dark
+
+            i = 0; j = 0
+            elms.each do |e|
+              if e[0] == '_'
+                i += e[1..-1].to_i
+                if i >= @map.size.x
+                  j += i / @map.size.x
+                  i %= @map.size.x
+                end
+              elsif e.size > 3 && e[3] == '*'
+                amount = e[4..-1].to_i
+                tile = e[0..2]
+                amount.times do
+                  if e[0] == 'b'; @objects[i][j].back = tile
+                  elsif e[0] == 'f'; @objects[i][j].fore = tile
+                  elsif e[0] == 'h'; @objects[i][j].hide = tile
+                  else; @objects[i][j].obj = tile; end
+                  i += 1
+                  begin i = 0; j += 1 end if i == @tiles_x
+                end
+              else
+                ind = 0
+                while ind < e.size
+                  if e[ind] == 'b'; @objects[i][j].back = e.slice(ind, 3)
+                  elsif e[ind] == 'f'; @objects[i][j].fore = e.slice(ind, 3)
+                  elsif e[ind] == 'h'; @objects[i][j].hide = e.slice(ind, 3)
+                  elsif e[ind] == 'p' || e[ind] == 'w'
+                    @objects[i][j].obj = e.slice(ind, 3)
+                  else
+                    @objects[i][j].obj = e[ind..-1]
+                    ind += 1000
+                  end
+                  ind += 3
+                end
+                i += 1
+                begin i = 0; j += 1 end if i == @tiles_x
+              end
+            end
+            @ramps.clear
+            @ramps = all[3].split(';') if all[3]
           end
-        end
-      },
-      Button.new(604, 581, @font, 'Limpar', :button) {
-        @components[0..5].each { |c| c.text = ''; c.unfocus }
-        @cur_bg = 0; @cur_tileset = 0; @cur_element = 1
-        @objects = Array.new(@tiles_x) {
-          Array.new(@tiles_y) {
-            Cell.new
-          }
-        }
-        @added_bgs.clear
-        @ramps.clear
-      },
-      Button.new(604, 611, @font, 'Grid/Codes on/off', :button) { @grid = !@grid },
-      dark_btn = Button.new(604, 641, @font, 'Normal', :button) { @dark = !@dark; dark_btn.text = @dark ? 'Dark' : 'Normal' }
+        end,
+        Button.new(x: 4, y: 0, img: :btn1, font: @font1, text: 'SAVE', scale_x: 2, scale_y: 2, anchor: :right) do
+          path = "#{@dir}/#{name.gsub('|', '/')}"
+          will_save = if save_confirm
+                        save_confirm = false
+                        File.delete path
+                        true
+                      elsif File.exist? path
+                        @msg = 'Salvar por cima?'
+                        save_confirm = true
+                        false
+                      else
+                        true
+                      end
+          if will_save
+            code = "#{@tiles_x},#{@tiles_y},#{@cur_exit},#{ddl_ts.value},#{ddl_bgm.value}#{@dark ? ',.' : ''}##{ddl_bg.value}#"
+
+            count = 1
+            last_element = get_cell_string(0, 0)
+            (0...@tiles_y).each do |j|
+              (0...@tiles_x).each do |i|
+                next if i == 0 && j == 0
+                element = get_cell_string i, j
+                if element == last_element &&
+                    (last_element == '' ||
+                        ((last_element[0] == 'w' ||
+                            last_element[0] == 'p' ||
+                            last_element[0] == 'b' ||
+                            last_element[0] == 'f' ||
+                            last_element[0] == 'h') && last_element.size == 3))
+                  count += 1
+                else
+                  if last_element == ''
+                    code += "_#{count}"
+                  else
+                    code += last_element + (count > 1 ? "*#{count}" : '')
+                  end
+                  code += ';'
+                  last_element = element
+                  count = 1
+                end
+              end
+            end
+            if last_element == ''
+              code = code.chop + '#'
+            else
+              code += last_element + (count > 1 ? "*#{count}" : '') + '#'
+            end
+            @ramps.each { |r| code += "#{r};" }
+            code.chop! unless @ramps.empty?
+
+            File.open(path, 'w') { |f| f.write code }
+            @msg = 'Arquivo salvo'
+          end
+        end,
+      ], :pnl, :tiled, true, 2, 2, :bottom),
+      ###########################################################################
+
+      ################################ Elementos ################################
+      Panel.new(0, 0, 48, 300, [
+        Button.new(x: 0, y: 4, img: :btn1, font: @font1, text: 'BOMB', scale_x: 2, scale_y: 2, anchor: :top) do
+
+        end,
+        Label.new(x: 0, y: 48, font: @font1, text: 'Default', scale_x: 2, scale_y: 2, anchor: :top),
+        ToggleButton.new(x: 0, y: 60, img: :chk, checked: true, scale_x: 2, scale_y: 2, anchor: :top),
+        Button.new(x: 0, y: 100, img: :btn1, font: @font1, text: 'ELEM.', scale_x: 2, scale_y: 2, anchor: :top) do
+
+        end,
+        Button.new(x: 0, y: 144, img: :btn1, font: @font1, text: 'ENEMY', scale_x: 2, scale_y: 2, anchor: :top) do
+
+        end,
+        TextField.new(x: 0, y: 188, img: :textField, font: @font2, margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, anchor: :top)
+      ], :pnl, :tiled, true, 2, 2, :right)
+      ###########################################################################
+
     ]
-=end
   end
 
   def needs_cursor?
@@ -369,6 +368,27 @@ class SBEditor < GameWindow
 =end
   end
 
+  def reset_map(tiles_x, tiles_y)
+    if tiles_x < @tiles_x
+      @objects = @objects[0...tiles_x]
+    elsif tiles_x > @tiles_x
+      min_y = tiles_y < @tiles_y ? tiles_y : @tiles_y
+      (@tiles_x...tiles_x).each do |i|
+        @objects[i] = []
+        (0...min_y).each { |j| @objects[i][j] = Cell.new }
+      end
+    end
+    if tiles_y < @tiles_y
+      @objects.map! { |o| o[0...tiles_y] }
+    elsif tiles_y > @tiles_y
+      @objects.each do |o|
+        (@tiles_y...tiles_y).each { |j| o[j] = Cell.new }
+      end
+    end
+    @map = Map.new 32, 32, tiles_x, tiles_y, @scr_w, @scr_h
+    @tiles_x = tiles_x; @tiles_y = tiles_y
+  end
+
   def check_fill(i, j, code)
     if @tile_type == 2; @objects[i][j].back = code
     else; @objects[i][j].hide = 'h00'; end
@@ -385,48 +405,6 @@ class SBEditor < GameWindow
              @objects[i][j].hide.nil?
   end
 
-  def save_file(path)
-    code = "#{@tiles_x},#{@tiles_y},#{@exit_type},#{@cur_tileset + 1},#{@components[5].text}#{@dark ? ',.' : ''}#"
-    last_element = get_cell_string(0, 0)
-    @added_bgs.each { |bg| code += "#{bg}," }
-    code = code.chop + '#'
-    count = 1
-    (0...@tiles_y).each do |j|
-      (0...@tiles_x).each do |i|
-        next if i == 0 && j == 0
-        element = get_cell_string i, j
-        if element == last_element &&
-           (last_element == '' ||
-            ((last_element[0] == 'w' ||
-              last_element[0] == 'p' ||
-              last_element[0] == 'b' ||
-              last_element[0] == 'f' ||
-              last_element[0] == 'h') && last_element.size == 3))
-          count += 1
-        else
-          if last_element == ''
-            code += "_#{count}"
-          else
-            code += last_element + (count > 1 ? "*#{count}" : '')
-          end
-          code += ';'
-          last_element = element
-          count = 1
-        end
-      end
-    end
-    if last_element == ''
-      code = code.chop + '#'
-    else
-      code += last_element + (count > 1 ? "*#{count}" : '') + '#'
-    end
-    @ramps.each { |r| code += "#{r};" }
-    code.chop! unless @ramps.empty?
-
-    File.open(path, 'w') { |f| f.write code }
-    @msg = 'Arquivo salvo'
-  end
-
   def get_cell_string(i, j)
     str = ''
     str += @objects[i][j].back if @objects[i][j].back
@@ -436,93 +414,22 @@ class SBEditor < GameWindow
     str
   end
 
-  def open_file(path)
-    f = File.open(path)
-    all = f.readline.chomp.split('#'); f.close
-    infos = all[0].split(','); bg_infos = all[1].split(','); elms = all[2].split(';')
-    @tiles_x = infos[0].to_i; @tiles_y = infos[1].to_i; @exit_type = infos[2].to_i
-    @map = Map.new(32, 32, @tiles_x, @tiles_y, EDITOR_WIDTH, EDITOR_HEIGHT)
-    @components[1].text = infos[0]; @components[2].text = infos[1]
-    @objects = Array.new(@tiles_x) {
-      Array.new(@tiles_y) {
-        Cell.new
-      }
-    }
-    @added_bgs.clear
-    bg_infos.each { |bg| @added_bgs << bg }
-    @cur_bg = 0
-    @cur_tileset = infos[3].to_i - 1
-    @tiles = Res.tileset (@cur_tileset + 1).to_s, 16, 16
-    @components[5].text = infos[4]
-    @components[0..5].each { |c| c.unfocus }
-    @dark = infos.length > 5
-    @components[19].text = @dark ? 'Dark' : 'Normal'
-    i = 0; j = 0
-    elms.each do |e|
-      if e[0] == '_'
-        i += e[1..-1].to_i
-        if i >= @map.size.x
-          j += i / @map.size.x
-          i %= @map.size.x
-        end
-      elsif e.size > 3 && e[3] == '*'
-        amount = e[4..-1].to_i
-        tile = e[0..2]
-        amount.times do
-          if e[0] == 'b'; @objects[i][j].back = tile
-          elsif e[0] == 'f'; @objects[i][j].fore = tile
-          elsif e[0] == 'h'; @objects[i][j].hide = tile
-          else; @objects[i][j].obj = tile; end
-          i += 1
-          begin i = 0; j += 1 end if i == @tiles_x
-        end
-      else
-        ind = 0
-        while ind < e.size
-          if e[ind] == 'b'; @objects[i][j].back = e.slice(ind, 3)
-          elsif e[ind] == 'f'; @objects[i][j].fore = e.slice(ind, 3)
-          elsif e[ind] == 'h'; @objects[i][j].hide = e.slice(ind, 3)
-          elsif e[ind] == 'p' || e[ind] == 'w'
-            @objects[i][j].obj = e.slice(ind, 3)
-          else
-            @objects[i][j].obj = e[ind..-1]
-            ind += 1000
-          end
-          ind += 3
-        end
-        i += 1
-        begin i = 0; j += 1 end if i == @tiles_x
-      end
-    end
-    @ramps.clear
-    @ramps = all[3].split(';') if all[3]
-
-    @msg = 'Arquivo aberto'
-  end
-
   def draw
     clear 0xddddff
 
-    @panels.each do |p|
-      a = Mouse.over?(p.x, p.y, p.w, p.h) ? 255 : 127
-      p.draw(a)
-    end
-
-=begin
     @map.foreach do |i, j, x, y|
-      x += @margin.x
       draw_quad x + 1, y + 1, NULL_COLOR,
                 x + 31, y + 1, NULL_COLOR,
                 x + 1, y + 31, NULL_COLOR,
-                x + 31, y + 31, NULL_COLOR, 0 if @grid
+                x + 31, y + 31, NULL_COLOR, 0
       if @objects[i][j].back
-        @tiles[@objects[i][j].back[1..2].to_i].draw x, y, 0, 2, 2
-        @font.draw 'b', x + 20, y + 18, 1, 1, 1, BLACK if @grid
+        @tilesets[@cur_tileset][@objects[i][j].back[1..2].to_i].draw x, y, 0, 2, 2
+        @font1.draw 'b', x + 20, y + 18, 1, 1, 1, BLACK
       end
       draw_object i, j, x, y
       if @objects[i][j].fore
-        @tiles[@objects[i][j].fore[1..2].to_i].draw x, y, 0, 2, 2
-        @font.draw 'f', x + 20, y + 8, 1, 1, 1, BLACK if @grid
+        @tilesets[@cur_tileset][@objects[i][j].fore[1..2].to_i].draw x, y, 0, 2, 2
+        @font1.draw 'f', x + 20, y + 8, 1, 1, 1, BLACK
       end
       draw_quad x, y, HIDE_COLOR,
                 x + 32, y, HIDE_COLOR,
@@ -531,69 +438,38 @@ class SBEditor < GameWindow
     end
     @ramps.each do |r|
       p = r.split(':')[1].split(',')
-      pos = @map.get_screen_pos(p[0].to_i, p[1].to_i) + @margin
+      pos = @map.get_screen_pos(p[0].to_i, p[1].to_i)
       a = r[1] == "'" ? 2 : 1
       w = r[a].to_i * 32; h = r[a + 1].to_i * 32
       draw_ramp pos.x, pos.y, w, h, r[0] == 'l', a == 2
     end
 
-    draw_quad 0, 0, WHITE,
-              200, 0, WHITE,
-              0, 600, WHITE,
-              200, 600, WHITE, 0
-    draw_quad 200, 576, WHITE,
-              1224, 576, WHITE,
-              200, 720, WHITE,
-              1224, 720, WHITE, 0
-    @components.each { |c| c.draw }
+    # if Mouse.over? @editable_area
+    #   p = @map.get_map_pos(Mouse.x - @margin.x, Mouse.y)
+    #   @font.draw "#{p.x}, #{p.y}", Mouse.x, Mouse.y - 15, 1, 1, 1, BLACK
+    # end
 
-    if Mouse.over? @editable_area
-      p = @map.get_map_pos(Mouse.x - @margin.x, Mouse.y)
-      @font.draw "#{p.x}, #{p.y}", Mouse.x, Mouse.y - 15, 1, 1, 1, BLACK
+    @panels.each do |p|
+      a = Mouse.over?(p.x, p.y, p.w, p.h) ? 255 : 127
+      p.draw(a)
     end
-
-    @bgs[@cur_bg].draw 204, 580, 0, 192.0 / @bgs[@cur_bg].width, 100.0 / @bgs[@cur_bg].height
-    @added_bgs.each_with_index do |b, i|
-      @font.draw b, 404, 580 + i * 20, 0, 1, 1, BLACK
-    end
-    @elements[@element_index].draw 26 + (64 - @elements[@element_index].width) / 2,
-                                   435 + (64 - @elements[@element_index].height) / 2, 0
-    @tilesets[@cur_tileset].draw 0, 192, 0, 1.25, 1.25
-    draw_ramp @ramp_area.x, @ramp_area.y, @ramp_area.w, @ramp_area.h, true, false
-
-    if @cur_element < 0
-      draw_selection @ramp_area.x, @ramp_area.y, @ramp_area.w, @ramp_area.h
-    elsif @cur_element <= TOTAL_TILES
-      draw_selection ((@cur_element - 1) % 10) * 20, 192 + ((@cur_element - 1) / 10) * 20, 20, 20
-    else
-      draw_selection @element_area.x, @element_area.y, @element_area.w, @element_area.h
-    end
-
-    @font.draw 'Nome:', 5, 5, 0, 1, 1, BLACK
-    @font.draw 'Tiles em X:', 5, 45, 0, 1, 1, BLACK
-    @font.draw 'Tiles em Y:', 5, 85, 0, 1, 1, BLACK
-    @font.draw_rel @msg, 100, 610, 0, 0.5, 0, 1, 1, BLACK
-    @font.draw_rel @tile_types[@tile_type], 100, 150, 0, 0.5, 0, 1, 1, BLACK
-    @font.draw "Saída: #{@exit_types[@exit_type]}", 4, 570, 0, 1, 1, BLACK
-    @font.draw 'BGM:', 604, 680, 0, 1, 1, BLACK
-=end
   end
 
   def draw_object(i, j, x, y)
     obj = @objects[i][j].obj
     if obj
       if obj[0] == 'w' || obj[0] == 'p'
-        @tiles[obj[1..2].to_i].draw x, y, 0, 2, 2
-        @font.draw obj[0], x + 20, y - 2, 1, 1, 1, BLACK if @grid
+        @tilesets[@cur_tileset][obj[1..2].to_i].draw x, y, 0, 2, 2
+        @font1.draw obj[0], x + 20, y - 2, 1, 1, 1, BLACK
       elsif obj[0] == '!'
-        @elements[0].draw x, y, 0
-        @font.draw obj[1..-1], x, y, 0, 1, 1, BLACK if @grid
+        @bomb.draw x, y, 0
+        @font1.draw obj[1..-1], x, y, 0, 1, 1, BLACK
       else
         code = obj[1..-1].split(':')
         @elements[code[0].to_i].draw x, y, 0
-        if @grid && code.size > 1
+        if code.size > 1
           code[1..-1].each_with_index do |c, i|
-            @font.draw c, x, y + i * 9, 0, 0.75, 0.75, BLACK
+            @font1.draw c, x, y + i * 9, 0, 0.75, 0.75, BLACK
           end
         end
       end
@@ -604,13 +480,6 @@ class SBEditor < GameWindow
     draw_triangle x + (left ? w : 0), y, up ? RAMP_UP_COLOR : RAMP_COLOR,
                   x, y + h, up ? RAMP_UP_COLOR : RAMP_COLOR,
                   x + w, y + h, up ? RAMP_UP_COLOR : RAMP_COLOR, 0
-  end
-
-  def draw_selection(x, y, w, h)
-    draw_quad x, y, SELECTION_COLOR,
-              x + w, y, SELECTION_COLOR,
-              x, y + h, SELECTION_COLOR,
-              x + w, y + h, SELECTION_COLOR, 0
   end
 end
 
