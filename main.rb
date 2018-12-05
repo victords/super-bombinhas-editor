@@ -274,6 +274,8 @@ class SBEditor < GameWindow
       ###########################################################################
 
     ]
+
+    @dropdowns = [ddl_bg, ddl_bgm, ddl_exit, ddl_ts]
   end
 
   def needs_cursor?
@@ -285,7 +287,21 @@ class SBEditor < GameWindow
     Mouse.update
     close if KB.key_pressed? Gosu::KbEscape
 
-    @panels.each(&:update)
+    @over_panel = [false, false, false, false]
+    @dropdowns.each_with_index do |d, i|
+      h = d.instance_eval('@open') ? d.instance_eval('@max_h') : d.h
+      @over_panel[i < 3 ? 0 : 1] = true if Mouse.over?(d.x, d.y, d.w, h)
+    end
+    @panels.each_with_index do |p, i|
+      p.update
+      @over_panel[i] = true if Mouse.over?(p.x, p.y, p.w, p.h)
+    end
+
+    speed = KB.key_down?(Gosu::KbLeftShift) || KB.key_down?(Gosu::KbRightShift) ? 10 : 20
+    @map.move_camera 0, -speed if KB.key_down? Gosu::KbUp
+    @map.move_camera speed, 0 if KB.key_down? Gosu::KbRight
+    @map.move_camera 0, speed if KB.key_down? Gosu::KbDown
+    @map.move_camera -speed, 0 if KB.key_down? Gosu::KbLeft
 
 =begin
     ctrl = (KB.key_down? Gosu::KbLeftControl or KB.key_down? Gosu::KbRightControl)
@@ -355,16 +371,6 @@ class SBEditor < GameWindow
         @objects[map_pos.x][map_pos.y] = Cell.new
       end
     end
-
-    if Mouse.over? @editable_area
-      speed = KB.key_down?(Gosu::KbLeftShift) || KB.key_down?(Gosu::KbRightShift) ? 20 : 10
-      @map.move_camera 0, -speed if KB.key_down? Gosu::KbUp
-      @map.move_camera speed, 0 if KB.key_down? Gosu::KbRight
-      @map.move_camera 0, speed if KB.key_down? Gosu::KbDown
-      @map.move_camera -speed, 0 if KB.key_down? Gosu::KbLeft
-    end
-
-    @components.each { |c| c.update }
 =end
   end
 
@@ -444,14 +450,13 @@ class SBEditor < GameWindow
       draw_ramp pos.x, pos.y, w, h, r[0] == 'l', a == 2
     end
 
-    # if Mouse.over? @editable_area
-    #   p = @map.get_map_pos(Mouse.x - @margin.x, Mouse.y)
-    #   @font.draw "#{p.x}, #{p.y}", Mouse.x, Mouse.y - 15, 1, 1, 1, BLACK
-    # end
+    @panels.each_with_index do |p, i|
+      p.draw(@over_panel[i] ? 255 : 153)
+    end
 
-    @panels.each do |p|
-      a = Mouse.over?(p.x, p.y, p.w, p.h) ? 255 : 127
-      p.draw(a)
+    unless @over_panel.any?
+      p = @map.get_map_pos(Mouse.x, Mouse.y)
+      @font2.draw "#{p.x}, #{p.y}", Mouse.x, Mouse.y - 15, 1, 2, 2, BLACK
     end
   end
 
