@@ -3,6 +3,33 @@ include MiniGL
 
 Cell = Struct.new(:back, :fore, :obj, :hide)
 
+class FloatingPanel
+  COLOR = 0x80ffffff
+
+  attr_reader :x, :y, :w, :h, :children
+  attr_accessor :visible
+
+  def initialize(x, y, w, h, children)
+    @x = x
+    @y = y
+    @w = w
+    @h = h
+    @children = children
+    @visible = false
+  end
+
+  def draw
+    return unless @visible
+    G.window.draw_quad(@x, @y, COLOR,
+                       @x + @w, @y, COLOR,
+                       @x, @y + @h, COLOR,
+                       @x + @w, @y + @h, COLOR, 1)
+    children.each do |c|
+      c[:img].draw(@x + c[:x], @y + c[:y], 1, 2, 2)
+    end
+  end
+end
+
 class SBEditor < GameWindow
   NULL_COLOR = 0x11000000
   HIDE_COLOR = 0x33000099
@@ -105,13 +132,13 @@ class SBEditor < GameWindow
           @cur_tileset = ts_options.index(v)
         end),
         Button.new(x: 0, y: 38, img: :btn1, font: @font1, text: 'WALL', scale_x: 2, scale_y: 2, anchor: :top) do
-          # setar elemento atual para wall
+          @cur_element = :wall
         end,
         Button.new(x: 0, y: 38 + 44, img: :btn1, font: @font1, text: 'PASS', scale_x: 2, scale_y: 2, anchor: :top) do
-          # setar elemento atual para passable
+          @cur_element = :pass
         end,
         Button.new(x: 0, y: 38 + 88, img: :btn1, font: @font1, text: 'HIDE', scale_x: 2, scale_y: 2, anchor: :top) do
-          # setar elemento atual para hide
+          @cur_element = :hide
         end,
         (other_tile_btn = Button.new(x: 0, y: 38 + 132, img: :btn1, font: @font1, text: 'OTHER', scale_x: 2, scale_y: 2, anchor: :top) do
           # abrir tiles à direita
@@ -273,6 +300,10 @@ class SBEditor < GameWindow
       ], :pnl, :tiled, true, 2, 2, :right)
       ###########################################################################
 
+    ]
+
+    @floating_panels = [
+      FloatingPanel.new(other_tile_btn.x + 40, other_tile_btn.y, 337, 172, @tilesets[@cur_tileset][50..-1].map.with_index{ |t, i| { img: t, x: 4 + (i % 10) * 33, y: 4 + (i / 10) * 33 } })
     ]
 
     @dropdowns = [ddl_bg, ddl_bgm, ddl_exit, ddl_ts]
@@ -453,6 +484,8 @@ class SBEditor < GameWindow
     @panels.each_with_index do |p, i|
       p.draw(@over_panel[i] ? 255 : 153)
     end
+
+    @floating_panels.each(&:draw)
 
     unless @over_panel.any?
       p = @map.get_map_pos(Mouse.x, Mouse.y)
