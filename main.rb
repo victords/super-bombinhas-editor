@@ -9,13 +9,24 @@ class FloatingPanel
   attr_reader :x, :y, :w, :h, :children
   attr_accessor :visible
 
-  def initialize(x, y, w, h, children)
+  def initialize(x, y, w, h, children, editor)
     @x = x
     @y = y
     @w = w
     @h = h
     @children = children
+    @buttons = children.map.with_index do |c, i|
+      Button.new(x: @x + c[:x], y: @y + c[:y], width: c[:img].width * 2, height: c[:img].height * 2, params: i) do |p|
+        editor.cur_index = p
+        @visible = false
+      end
+    end
     @visible = false
+  end
+
+  def update
+    return unless @visible
+    @buttons.each(&:update)
   end
 
   def draw
@@ -24,7 +35,7 @@ class FloatingPanel
                        @x + @w, @y, COLOR,
                        @x, @y + @h, COLOR,
                        @x + @w, @y + @h, COLOR, 1)
-    children.each do |c|
+    @children.each do |c|
       c[:img].draw(@x + c[:x], @y + c[:y], 1, 2, 2)
     end
   end
@@ -38,6 +49,8 @@ class SBEditor < GameWindow
   SELECTION_COLOR = 0x66ffff00
   BLACK = 0xff000000
   WHITE = 0xffffffff
+
+  attr_writer :cur_index
 
   def initialize
     @scr_w, @scr_h = `xrandr`.scan(/current (\d+) x (\d+)/).flatten.map(&:to_i)
@@ -54,9 +67,9 @@ class SBEditor < GameWindow
 
     @ramps = []
     @dir = '../super-bombinhas/data'
-
     @font1 = Res.font :minecraftia, 6
     @font2 = Res.font :minecraftia, 10
+    @cur_index = -1
 
     bg_files = Dir["#{Res.prefix}#{Res.img_dir}bg/*"].sort
     @bgs = []
@@ -141,10 +154,10 @@ class SBEditor < GameWindow
           @cur_element = :hide
         end,
         (other_tile_btn = Button.new(x: 0, y: 38 + 132, img: :btn1, font: @font1, text: 'OTHER', scale_x: 2, scale_y: 2, anchor: :top) do
-          # abrir tiles à direita
+          @floating_panels[0].visible = !@floating_panels[0].visible
         end),
         (ramp_btn = Button.new(x: 0, y: 38 + 176, img: :btn1, font: @font1, text: 'RAMP', scale_x: 2, scale_y: 2, anchor: :top) do
-          # setar elemento atual para rampa
+          @floating_panels[1].visible = !@floating_panels[1].visible
         end),
       ], :pnl, :tiled, true, 2, 2, :left),
       ###########################################################################
@@ -303,7 +316,8 @@ class SBEditor < GameWindow
     ]
 
     @floating_panels = [
-      FloatingPanel.new(other_tile_btn.x + 40, other_tile_btn.y, 337, 172, @tilesets[@cur_tileset][50..-1].map.with_index{ |t, i| { img: t, x: 4 + (i % 10) * 33, y: 4 + (i / 10) * 33 } })
+      FloatingPanel.new(other_tile_btn.x + 40, other_tile_btn.y, 337, 172, @tilesets[@cur_tileset][50..-1].map.with_index{ |t, i| { img: t, x: 4 + (i % 10) * 33, y: 4 + (i / 10) * 33 } }, self),
+      FloatingPanel.new(ramp_btn.x + 40, ramp_btn.y, 271, 40, (0..7).map { |i| { img: Res.img("ramp#{i}"), x: 4 + i * 33, y: 4 } }, self)
     ]
 
     @dropdowns = [ddl_bg, ddl_bgm, ddl_exit, ddl_ts]
@@ -322,6 +336,10 @@ class SBEditor < GameWindow
     @dropdowns.each_with_index do |d, i|
       h = d.instance_eval('@open') ? d.instance_eval('@max_h') : d.h
       @over_panel[i < 3 ? 0 : 1] = true if Mouse.over?(d.x, d.y, d.w, h)
+    end
+    @floating_panels.each do |p|
+      p.update
+      @over_panel[1] = true if Mouse.over?(p.x, p.y, p.w, p.h)
     end
     @panels.each_with_index do |p, i|
       p.update
@@ -486,6 +504,8 @@ class SBEditor < GameWindow
     end
 
     @floating_panels.each(&:draw)
+
+    @font2.draw(@cur_index.to_s, 0, 0, 1, 2, 2, BLACK)
 
     unless @over_panel.any?
       p = @map.get_map_pos(Mouse.x, Mouse.y)
