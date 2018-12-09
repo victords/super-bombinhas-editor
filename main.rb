@@ -101,12 +101,15 @@ class SBEditor < GameWindow
 
     el_files = Dir["#{Res.prefix}#{Res.img_dir}el/*"]
     @elements = []
+    @enemies = []
+    @objs = []
     el_files.each do |f|
       name = f.split('/')[-1].chomp('.png')
-      next if name == 'Bomb'
-      @elements << Res.img("el_#{name}")
+      img = Res.img("el_#{name}")
+      @elements << img
+      (name.end_with?('!') ? @enemies : @objs) << img
     end
-    @bomb = Res.img(:el_Bomb)
+    @bomb = Res.img(:Bomb)
 
     save_confirm = false
 
@@ -303,12 +306,12 @@ class SBEditor < GameWindow
         end,
         Label.new(x: 0, y: 48, font: @font1, text: 'Default', scale_x: 2, scale_y: 2, anchor: :top),
         ToggleButton.new(x: 0, y: 60, img: :chk, checked: true, scale_x: 2, scale_y: 2, anchor: :top),
-        Button.new(x: 0, y: 100, img: :btn1, font: @font1, text: 'ELEM.', scale_x: 2, scale_y: 2, anchor: :top) do
-
-        end,
-        Button.new(x: 0, y: 144, img: :btn1, font: @font1, text: 'ENEMY', scale_x: 2, scale_y: 2, anchor: :top) do
-
-        end,
+        (btn_obj = Button.new(x: 0, y: 100, img: :btn1, font: @font1, text: 'OBJ.', scale_x: 2, scale_y: 2, anchor: :top) do
+          @floating_panels[2].visible = !@floating_panels[2].visible
+        end),
+        (btn_enemy = Button.new(x: 0, y: 144, img: :btn1, font: @font1, text: 'ENEMY', scale_x: 2, scale_y: 2, anchor: :top) do
+          @floating_panels[3].visible = !@floating_panels[3].visible
+        end),
         TextField.new(x: 0, y: 188, img: :textField, font: @font2, margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, anchor: :top)
       ], :pnl, :tiled, true, 2, 2, :right)
       ###########################################################################
@@ -317,7 +320,9 @@ class SBEditor < GameWindow
 
     @floating_panels = [
       FloatingPanel.new(other_tile_btn.x + 40, other_tile_btn.y, 337, 172, @tilesets[@cur_tileset][50..-1].map.with_index{ |t, i| { img: t, x: 4 + (i % 10) * 33, y: 4 + (i / 10) * 33 } }, self),
-      FloatingPanel.new(ramp_btn.x + 40, ramp_btn.y, 271, 40, (0..7).map { |i| { img: Res.img("ramp#{i}"), x: 4 + i * 33, y: 4 } }, self)
+      FloatingPanel.new(ramp_btn.x + 40, ramp_btn.y, 271, 40, (0..7).map { |i| { img: Res.img("ramp#{i}"), x: 4 + i * 33, y: 4 } }, self),
+      FloatingPanel.new(btn_obj.x - 337, btn_obj.y, 337, 300, @objs.map.with_index{ |o, i| { img: o, x: 4 + (i % 10) * 33, y: 4 + (i / 10) * 33 } }, self),
+      FloatingPanel.new(btn_enemy.x - 337, btn_enemy.y, 337, 300, @enemies.map.with_index{ |o, i| { img: o, x: 4 + (i % 10) * 33, y: 4 + (i / 10) * 33 } }, self),
     ]
 
     @dropdowns = [ddl_bg, ddl_bgm, ddl_exit, ddl_ts]
