@@ -327,6 +327,18 @@ class SBEditor < GameWindow
     ]
 
     @dropdowns = [ddl_bg, ddl_bgm, ddl_exit, ddl_ts]
+
+    @ramp_sizes = %w(11 21 32 12)
+    @ramp_tiles = [
+      [[0, 0, 7]], # l 1x1
+      [[0, 0, 46], [1, 0, 47]], # l 2x1
+      [[1, 0, 8], [2, 0, 9], [0, 1, 17], [1, 1, 18], [2, 1, 11]], # l 3x2
+      [[0, 0, 26], [0, 1, 36]], # l 1x2
+      [[0, 0, 37]], # r 1x1
+      [[0, 0, 48], [1, 0, 49]], # r 2x1
+      [[0, 0, 27], [1, 0, 28], [0, 1, 11], [1, 1, 38], [2, 1, 39]], # r 3x2
+      [[0, 0, 19], [0, 1, 29]], # r 1x2
+    ]
   end
 
   def needs_cursor?
@@ -345,7 +357,7 @@ class SBEditor < GameWindow
     end
     @floating_panels.each_with_index do |p, i|
       p.update
-      @over_panel[i < 2 ? 1 : 3] = true if Mouse.over?(p.x, p.y, p.w, p.h)
+      @over_panel[i < 2 ? 1 : 3] = true if p.visible && Mouse.over?(p.x, p.y, p.w, p.h)
     end
     @panels.each_with_index do |p, i|
       p.update
@@ -372,19 +384,41 @@ class SBEditor < GameWindow
         @objects[mp.x - 1][mp.y].obj = 'w%02d' % get_wall_tile(mp.x - 1, mp.y) if mp.x > 0 && @objects[mp.x - 1][mp.y].obj && @objects[mp.x - 1][mp.y].obj[0] == 'w'
         @objects[mp.x - 1][mp.y + 1].obj = 'w%02d' % get_wall_tile(mp.x - 1, mp.y + 1) if mp.x > 0 && mp.y < @map.size.y - 1 && @objects[mp.x - 1][mp.y + 1].obj && @objects[mp.x - 1][mp.y + 1].obj[0] == 'w'
         @objects[mp.x + 1][mp.y + 1].obj = 'w%02d' % get_wall_tile(mp.x + 1, mp.y + 1) if mp.x < @map.size.x - 1 && mp.y < @map.size.y - 1 && @objects[mp.x + 1][mp.y + 1].obj && @objects[mp.x + 1][mp.y + 1].obj[0] == 'w'
+      when :ramp
+        return unless Mouse.button_pressed?(:left)
+        @ramps << (@cur_index < 4 ? 'l' : 'r') + @ramp_sizes[@cur_index % 4] + ":#{mp.x},#{mp.y}"
+        @ramp_tiles[@cur_index].each do |t|
+          @objects[mp.x + t[0]][mp.y + t[1]].obj = nil
+          @objects[mp.x + t[0]][mp.y + t[1]].back = 'b%02d' % t[2]
+        end
       end
     elsif Mouse.button_down? :right
-      if Mouse.over? @editable_area
-        map_pos = @map.get_map_pos(Mouse.x - @margin.x, Mouse.y)
-        @ramps.each do |ramp|
-          coords = ramp.split(':')[1].split(',')
-          x = coords[0].to_i; y = coords[1].to_i
-          a = ramp[1] == "'" ? 2 : 1
-          w = ramp[a].to_i * 32; h = ramp[a + 1].to_i * 32
-          pos = @map.get_screen_pos(x, y) + @margin
-          @ramps.delete ramp if Mouse.over? pos.x, pos.y, w, h
+      mp = @map.get_map_pos(Mouse.x, Mouse.y)
+      @ramps.each do |ramp|
+        coords = ramp.split(':')[1].split(',')
+        x = coords[0].to_i; y = coords[1].to_i
+        a = ramp[1] == "'" ? 2 : 1
+        w = ramp[a].to_i * 32; h = ramp[a + 1].to_i * 32
+        pos = @map.get_screen_pos(x, y)
+        @ramps.delete(ramp) if Mouse.over?(pos.x, pos.y, w, h)
+      end
+      if @objects[mp.x][mp.y].hide
+        @objects[mp.x][mp.y].hide = nil
+      elsif @objects[mp.x][mp.y].fore
+        @objects[mp.x][mp.y].fore = nil
+      elsif @objects[mp.x][mp.y].obj
+        wall = @objects[mp.x][mp.y].obj[0] == 'w'
+        @objects[mp.x][mp.y].obj = nil
+        if wall
+          @objects[mp.x][mp.y - 1].obj = 'w%02d' % get_wall_tile(mp.x, mp.y - 1) if mp.y > 0 && @objects[mp.x][mp.y - 1].obj && @objects[mp.x][mp.y - 1].obj[0] == 'w'
+          @objects[mp.x + 1][mp.y].obj = 'w%02d' % get_wall_tile(mp.x + 1, mp.y) if mp.x < @map.size.x - 1 && @objects[mp.x + 1][mp.y].obj && @objects[mp.x + 1][mp.y].obj[0] == 'w'
+          @objects[mp.x][mp.y + 1].obj = 'w%02d' % get_wall_tile(mp.x, mp.y + 1) if mp.y < @map.size.y - 1 && @objects[mp.x][mp.y + 1].obj && @objects[mp.x][mp.y + 1].obj[0] == 'w'
+          @objects[mp.x - 1][mp.y].obj = 'w%02d' % get_wall_tile(mp.x - 1, mp.y) if mp.x > 0 && @objects[mp.x - 1][mp.y].obj && @objects[mp.x - 1][mp.y].obj[0] == 'w'
+          @objects[mp.x - 1][mp.y + 1].obj = 'w%02d' % get_wall_tile(mp.x - 1, mp.y + 1) if mp.x > 0 && mp.y < @map.size.y - 1 && @objects[mp.x - 1][mp.y + 1].obj && @objects[mp.x - 1][mp.y + 1].obj[0] == 'w'
+          @objects[mp.x + 1][mp.y + 1].obj = 'w%02d' % get_wall_tile(mp.x + 1, mp.y + 1) if mp.x < @map.size.x - 1 && mp.y < @map.size.y - 1 && @objects[mp.x + 1][mp.y + 1].obj && @objects[mp.x + 1][mp.y + 1].obj[0] == 'w'
         end
-        @objects[map_pos.x][map_pos.y] = Cell.new
+      else
+        @objects[mp.x][mp.y].back = nil
       end
     end
   end
@@ -480,12 +514,12 @@ class SBEditor < GameWindow
                 x + 31, y + 31, NULL_COLOR, 0
       if @objects[i][j].back
         @tilesets[@cur_tileset][@objects[i][j].back[1..2].to_i].draw x, y, 0, 2, 2
-        @font1.draw 'b', x + 20, y + 18, 1, 1, 1, BLACK
+        @font1.draw 'b', x + 20, y + 18, 1, 2, 2, BLACK
       end
       draw_object i, j, x, y
       if @objects[i][j].fore
         @tilesets[@cur_tileset][@objects[i][j].fore[1..2].to_i].draw x, y, 0, 2, 2
-        @font1.draw 'f', x + 20, y + 8, 1, 1, 1, BLACK
+        @font1.draw 'f', x + 20, y + 8, 1, 2, 2, BLACK
       end
       draw_quad x, y, HIDE_COLOR,
                 x + 32, y, HIDE_COLOR,
@@ -519,10 +553,10 @@ class SBEditor < GameWindow
     if obj
       if obj[0] == 'w' || obj[0] == 'p'
         @tilesets[@cur_tileset][obj[1..2].to_i].draw x, y, 0, 2, 2
-        @font1.draw obj[0], x + 20, y - 2, 1, 1, 1, BLACK
+        @font1.draw obj[0], x + 20, y - 2, 1, 2, 2, BLACK
       elsif obj[0] == '!'
         @bomb.draw x, y, 0
-        @font1.draw obj[1..-1], x, y, 0, 1, 1, BLACK
+        @font1.draw obj[1..-1], x, y, 0, 2, 2, BLACK
       else
         code = obj[1..-1].split(':')
         @elements[code[0].to_i].draw x, y, 0
