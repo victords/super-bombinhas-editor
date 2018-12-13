@@ -9,7 +9,7 @@ class FloatingPanel
   attr_reader :x, :y, :w, :h, :children
   attr_accessor :visible
 
-  def initialize(x, y, w, h, children, editor)
+  def initialize(element_type, x, y, w, h, children, editor)
     @x = x
     @y = y
     @w = w
@@ -17,6 +17,7 @@ class FloatingPanel
     @children = children
     @buttons = children.map.with_index do |c, i|
       Button.new(x: @x + c[:x], y: @y + c[:y], width: c[:img].width * 2, height: c[:img].height * 2, params: i) do |p|
+        editor.cur_element = element_type
         editor.cur_index = p
         @visible = false
       end
@@ -50,7 +51,7 @@ class SBEditor < GameWindow
   BLACK = 0xff000000
   WHITE = 0xffffffff
 
-  attr_writer :cur_index
+  attr_writer :cur_element, :cur_index
 
   def initialize
     @scr_w, @scr_h = `xrandr`.scan(/current (\d+) x (\d+)/).flatten.map(&:to_i)
@@ -319,10 +320,10 @@ class SBEditor < GameWindow
     ]
 
     @floating_panels = [
-      FloatingPanel.new(other_tile_btn.x + 40, other_tile_btn.y, 337, 172, @tilesets[@cur_tileset][50..-1].map.with_index{ |t, i| { img: t, x: 4 + (i % 10) * 33, y: 4 + (i / 10) * 33 } }, self),
-      FloatingPanel.new(ramp_btn.x + 40, ramp_btn.y, 271, 40, (0..7).map { |i| { img: Res.img("ramp#{i}"), x: 4 + i * 33, y: 4 } }, self),
-      FloatingPanel.new(btn_obj.x - 337, btn_obj.y, 337, 300, @objs.map.with_index{ |o, i| { img: o, x: 4 + (i % 10) * 33, y: 4 + (i / 10) * 33 } }, self),
-      FloatingPanel.new(btn_enemy.x - 337, btn_enemy.y, 337, 300, @enemies.map.with_index{ |o, i| { img: o, x: 4 + (i % 10) * 33, y: 4 + (i / 10) * 33 } }, self),
+      FloatingPanel.new(:tile, other_tile_btn.x + 40, other_tile_btn.y, 337, 172, @tilesets[@cur_tileset][50..-1].map.with_index{ |t, i| { img: t, x: 4 + (i % 10) * 33, y: 4 + (i / 10) * 33 } }, self),
+      FloatingPanel.new(:ramp, ramp_btn.x + 40, ramp_btn.y, 271, 40, (0..7).map { |i| { img: Res.img("ramp#{i}"), x: 4 + i * 33, y: 4 } }, self),
+      FloatingPanel.new(:obj, btn_obj.x - 337, btn_obj.y, 337, 300, @objs.map.with_index{ |o, i| { img: o, x: 4 + (i % 10) * 33, y: 4 + (i / 10) * 33 } }, self),
+      FloatingPanel.new(:enemy, btn_enemy.x - 337, btn_enemy.y, 337, 300, @enemies.map.with_index{ |o, i| { img: o, x: 4 + (i % 10) * 33, y: 4 + (i / 10) * 33 } }, self),
     ]
 
     @dropdowns = [ddl_bg, ddl_bgm, ddl_exit, ddl_ts]
@@ -342,9 +343,9 @@ class SBEditor < GameWindow
       h = d.instance_eval('@open') ? d.instance_eval('@max_h') : d.h
       @over_panel[i < 3 ? 0 : 1] = true if Mouse.over?(d.x, d.y, d.w, h)
     end
-    @floating_panels.each do |p|
+    @floating_panels.each_with_index do |p, i|
       p.update
-      @over_panel[1] = true if Mouse.over?(p.x, p.y, p.w, p.h)
+      @over_panel[i < 2 ? 1 : 3] = true if Mouse.over?(p.x, p.y, p.w, p.h)
     end
     @panels.each_with_index do |p, i|
       p.update
@@ -357,59 +358,20 @@ class SBEditor < GameWindow
     @map.move_camera 0, speed if KB.key_down? Gosu::KbDown
     @map.move_camera -speed, 0 if KB.key_down? Gosu::KbLeft
 
-=begin
-    ctrl = (KB.key_down? Gosu::KbLeftControl or KB.key_down? Gosu::KbRightControl)
+    return if @over_panel.any?
+
+    ctrl = KB.key_down?(Gosu::KbLeftControl) || KB.key_down?(Gosu::KbRightControl)
     if Mouse.button_down? :left
-      if Mouse.button_pressed? :left
-        if Mouse.over? @editable_area
-          if @cur_element < 0 # ramp
-            map_pos = @map.get_map_pos(Mouse.x - @margin.x, Mouse.y)
-            @ramps << "#{@components[4].text}:#{map_pos.x},#{map_pos.y}"
-          elsif ctrl
-            map_pos = @map.get_map_pos(Mouse.x - @margin.x, Mouse.y)
-            @components[3].text += "|#{map_pos.x},#{map_pos.y}"
-          end
-        else
-          (0..(TOTAL_TILES - 1)).each do |i|
-            if Mouse.over? @tile_areas[i]
-              @cur_element = i + 1
-              break
-            end
-          end
-          if Mouse.over? @element_area
-            @cur_element = TOTAL_TILES + @element_index + 1
-          elsif Mouse.over? @ramp_area
-            @cur_element = -1
-          end
-        end
-      end
-      if Mouse.over? @editable_area and @cur_element > 0 and not ctrl
-        map_pos = @map.get_map_pos(Mouse.x - @margin.x, Mouse.y)
-        if Mouse.double_click? :left
-          if @cur_element <= TOTAL_TILES and (@tile_type == 2 or @tile_type == 4)
-            code = "b#{'%02d' % (@cur_element - 1)}"
-            check_fill(map_pos.x, map_pos.y, code)
-          end
-        elsif @cur_element <= TOTAL_TILES
-          if @tile_type == 0 or @tile_type == 1
-            @objects[map_pos.x][map_pos.y].obj = (@tile_type == 0 ? 'w' : 'p') + ('%02d' % (@cur_element - 1))
-          elsif @tile_type == 2
-            @objects[map_pos.x][map_pos.y].back = 'b%02d' % (@cur_element - 1)
-          elsif @tile_type == 3
-            @objects[map_pos.x][map_pos.y].fore = 'f%02d' % (@cur_element - 1)
-          else
-            @objects[map_pos.x][map_pos.y].hide = 'h00'
-          end
-        elsif @cur_element == TOTAL_TILES + 1 # bomba
-          if @components[3].text != ''
-            @objects[map_pos.x][map_pos.y].obj = "!#{@components[3].text}"
-          end
-        else
-          symbol = @switch_codes.include?(@cur_element - TOTAL_TILES - 1) ? '$' : '@'
-          text = "#{symbol}#{@element_index}"
-          text += ":#{@components[3].text.gsub('|', ':')}" if @components[3].text != ''
-          @objects[map_pos.x][map_pos.y].obj = text
-        end
+      mp = @map.get_map_pos(Mouse.x, Mouse.y)
+      case @cur_element
+      when :wall
+        @objects[mp.x][mp.y].obj = 'w%02d' % get_wall_tile(mp.x, mp.y)
+        @objects[mp.x][mp.y - 1].obj = 'w%02d' % get_wall_tile(mp.x, mp.y - 1) if mp.y > 0 && @objects[mp.x][mp.y - 1].obj && @objects[mp.x][mp.y - 1].obj[0] == 'w'
+        @objects[mp.x + 1][mp.y].obj = 'w%02d' % get_wall_tile(mp.x + 1, mp.y) if mp.x < @map.size.x - 1 && @objects[mp.x + 1][mp.y].obj && @objects[mp.x + 1][mp.y].obj[0] == 'w'
+        @objects[mp.x][mp.y + 1].obj = 'w%02d' % get_wall_tile(mp.x, mp.y + 1) if mp.y < @map.size.y - 1 && @objects[mp.x][mp.y + 1].obj && @objects[mp.x][mp.y + 1].obj[0] == 'w'
+        @objects[mp.x - 1][mp.y].obj = 'w%02d' % get_wall_tile(mp.x - 1, mp.y) if mp.x > 0 && @objects[mp.x - 1][mp.y].obj && @objects[mp.x - 1][mp.y].obj[0] == 'w'
+        @objects[mp.x - 1][mp.y + 1].obj = 'w%02d' % get_wall_tile(mp.x - 1, mp.y + 1) if mp.x > 0 && mp.y < @map.size.y - 1 && @objects[mp.x - 1][mp.y + 1].obj && @objects[mp.x - 1][mp.y + 1].obj[0] == 'w'
+        @objects[mp.x + 1][mp.y + 1].obj = 'w%02d' % get_wall_tile(mp.x + 1, mp.y + 1) if mp.x < @map.size.x - 1 && mp.y < @map.size.y - 1 && @objects[mp.x + 1][mp.y + 1].obj && @objects[mp.x + 1][mp.y + 1].obj[0] == 'w'
       end
     elsif Mouse.button_down? :right
       if Mouse.over? @editable_area
@@ -425,7 +387,41 @@ class SBEditor < GameWindow
         @objects[map_pos.x][map_pos.y] = Cell.new
       end
     end
-=end
+  end
+
+  def get_wall_tile(i, j)
+    up = j == 0 || @objects[i][j - 1].obj && @objects[i][j - 1].obj[0] == 'w'
+    rt = i == @map.size.x - 1 || @objects[i + 1][j].obj && @objects[i + 1][j].obj[0] == 'w'
+    dn = j == @map.size.y - 1 || @objects[i][j + 1].obj && @objects[i][j + 1].obj[0] == 'w'
+    lf = i == 0 || @objects[i - 1][j].obj && @objects[i - 1][j].obj[0] == 'w'
+    tl = !up && i > 0 && j > 0 && @objects[i - 1][j - 1].obj && @objects[i - 1][j - 1].obj[0] == 'w'
+    tr = !up && i < @map.size.x - 1 && j > 0 && @objects[i + 1][j - 1].obj && @objects[i + 1][j - 1].obj[0] == 'w'
+    return 11 if up && rt && dn && lf
+    return 10 if up && rt && dn
+    return 21 if up && rt && lf
+    return 12 if up && dn && lf
+    return 20 if up && rt
+    return 13 if up && dn
+    return 22 if up && lf
+    return 23 if up
+    return 6 if tl && tr && rt && dn && lf
+    return 4 if tl && rt && dn && lf
+    return 5 if tr && rt && dn && lf
+    return 16 if tl && tr && rt && lf
+    return 14 if tl && rt && lf
+    return 15 if tr && rt && lf
+    return 24 if tr && rt && dn
+    return 25 if tl && dn && lf
+    return 34 if tr && rt
+    return 35 if tl && lf
+    return 1 if rt && dn && lf
+    return 0 if rt && dn
+    return 31 if rt && lf
+    return 2 if dn && lf
+    return 30 if rt
+    return 3 if dn
+    return 32 if lf
+    33
   end
 
   def reset_map(tiles_x, tiles_y)
