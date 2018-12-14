@@ -54,7 +54,7 @@ class SBEditor < GameWindow
   attr_writer :cur_element, :cur_index
 
   def initialize
-    @scr_w, @scr_h = `xrandr`.scan(/current (\d+) x (\d+)/).flatten.map(&:to_i)
+    @scr_w, @scr_h = 1920, 1080 # `xrandr`.scan(/current (\d+) x (\d+)/).flatten.map(&:to_i)
     super @scr_w, @scr_h, true
     Res.retro_images = true
 
@@ -377,13 +377,13 @@ class SBEditor < GameWindow
       mp = @map.get_map_pos(Mouse.x, Mouse.y)
       case @cur_element
       when :wall
-        @objects[mp.x][mp.y].obj = 'w%02d' % get_wall_tile(mp.x, mp.y)
-        @objects[mp.x][mp.y - 1].obj = 'w%02d' % get_wall_tile(mp.x, mp.y - 1) if mp.y > 0 && @objects[mp.x][mp.y - 1].obj && @objects[mp.x][mp.y - 1].obj[0] == 'w'
-        @objects[mp.x + 1][mp.y].obj = 'w%02d' % get_wall_tile(mp.x + 1, mp.y) if mp.x < @map.size.x - 1 && @objects[mp.x + 1][mp.y].obj && @objects[mp.x + 1][mp.y].obj[0] == 'w'
-        @objects[mp.x][mp.y + 1].obj = 'w%02d' % get_wall_tile(mp.x, mp.y + 1) if mp.y < @map.size.y - 1 && @objects[mp.x][mp.y + 1].obj && @objects[mp.x][mp.y + 1].obj[0] == 'w'
-        @objects[mp.x - 1][mp.y].obj = 'w%02d' % get_wall_tile(mp.x - 1, mp.y) if mp.x > 0 && @objects[mp.x - 1][mp.y].obj && @objects[mp.x - 1][mp.y].obj[0] == 'w'
-        @objects[mp.x - 1][mp.y + 1].obj = 'w%02d' % get_wall_tile(mp.x - 1, mp.y + 1) if mp.x > 0 && mp.y < @map.size.y - 1 && @objects[mp.x - 1][mp.y + 1].obj && @objects[mp.x - 1][mp.y + 1].obj[0] == 'w'
-        @objects[mp.x + 1][mp.y + 1].obj = 'w%02d' % get_wall_tile(mp.x + 1, mp.y + 1) if mp.x < @map.size.x - 1 && mp.y < @map.size.y - 1 && @objects[mp.x + 1][mp.y + 1].obj && @objects[mp.x + 1][mp.y + 1].obj[0] == 'w'
+        set_wall_tile(mp.x, mp.y, true)
+        set_wall_tile(mp.x, mp.y - 1)
+        set_wall_tile(mp.x + 1, mp.y)
+        set_wall_tile(mp.x, mp.y + 1)
+        set_wall_tile(mp.x - 1, mp.y)
+        set_wall_tile(mp.x - 1, mp.y + 1)
+        set_wall_tile(mp.x + 1, mp.y + 1)
       when :ramp
         return unless Mouse.button_pressed?(:left)
         @ramps << (@cur_index < 4 ? 'l' : 'r') + @ramp_sizes[@cur_index % 4] + ":#{mp.x},#{mp.y}"
@@ -410,12 +410,12 @@ class SBEditor < GameWindow
         wall = @objects[mp.x][mp.y].obj[0] == 'w'
         @objects[mp.x][mp.y].obj = nil
         if wall
-          @objects[mp.x][mp.y - 1].obj = 'w%02d' % get_wall_tile(mp.x, mp.y - 1) if mp.y > 0 && @objects[mp.x][mp.y - 1].obj && @objects[mp.x][mp.y - 1].obj[0] == 'w'
-          @objects[mp.x + 1][mp.y].obj = 'w%02d' % get_wall_tile(mp.x + 1, mp.y) if mp.x < @map.size.x - 1 && @objects[mp.x + 1][mp.y].obj && @objects[mp.x + 1][mp.y].obj[0] == 'w'
-          @objects[mp.x][mp.y + 1].obj = 'w%02d' % get_wall_tile(mp.x, mp.y + 1) if mp.y < @map.size.y - 1 && @objects[mp.x][mp.y + 1].obj && @objects[mp.x][mp.y + 1].obj[0] == 'w'
-          @objects[mp.x - 1][mp.y].obj = 'w%02d' % get_wall_tile(mp.x - 1, mp.y) if mp.x > 0 && @objects[mp.x - 1][mp.y].obj && @objects[mp.x - 1][mp.y].obj[0] == 'w'
-          @objects[mp.x - 1][mp.y + 1].obj = 'w%02d' % get_wall_tile(mp.x - 1, mp.y + 1) if mp.x > 0 && mp.y < @map.size.y - 1 && @objects[mp.x - 1][mp.y + 1].obj && @objects[mp.x - 1][mp.y + 1].obj[0] == 'w'
-          @objects[mp.x + 1][mp.y + 1].obj = 'w%02d' % get_wall_tile(mp.x + 1, mp.y + 1) if mp.x < @map.size.x - 1 && mp.y < @map.size.y - 1 && @objects[mp.x + 1][mp.y + 1].obj && @objects[mp.x + 1][mp.y + 1].obj[0] == 'w'
+          set_wall_tile(mp.x, mp.y - 1)
+          set_wall_tile(mp.x + 1, mp.y)
+          set_wall_tile(mp.x, mp.y + 1)
+          set_wall_tile(mp.x - 1, mp.y)
+          set_wall_tile(mp.x - 1, mp.y + 1)
+          set_wall_tile(mp.x + 1, mp.y + 1)
         end
       else
         @objects[mp.x][mp.y].back = nil
@@ -423,39 +423,44 @@ class SBEditor < GameWindow
     end
   end
 
-  def get_wall_tile(i, j)
-    up = j == 0 || @objects[i][j - 1].obj && @objects[i][j - 1].obj[0] == 'w'
-    rt = i == @map.size.x - 1 || @objects[i + 1][j].obj && @objects[i + 1][j].obj[0] == 'w'
-    dn = j == @map.size.y - 1 || @objects[i][j + 1].obj && @objects[i][j + 1].obj[0] == 'w'
-    lf = i == 0 || @objects[i - 1][j].obj && @objects[i - 1][j].obj[0] == 'w'
+  def set_wall_tile(i, j, must_set = false)
+    return if i < 0 || j < 0 || i >= @map.size.x || j >= @map.size.y
+	return unless must_set || @objects[i][j].obj && @objects[i][j].obj[0] == 'w' || @objects[i][j].back == 'b11'
+	up = j == 0 || @objects[i][j - 1].obj && @objects[i][j - 1].obj[0] == 'w' || @objects[i][j - 1].back == 'b11'
+    rt = i == @map.size.x - 1 || @objects[i + 1][j].obj && @objects[i + 1][j].obj[0] == 'w' || @objects[i + 1][j].back == 'b11'
+    dn = j == @map.size.y - 1 || @objects[i][j + 1].obj && @objects[i][j + 1].obj[0] == 'w' || @objects[i][j + 1].back == 'b11'
+    lf = i == 0 || @objects[i - 1][j].obj && @objects[i - 1][j].obj[0] == 'w' || @objects[i - 1][j].back == 'b11'
     tl = !up && i > 0 && j > 0 && @objects[i - 1][j - 1].obj && @objects[i - 1][j - 1].obj[0] == 'w'
     tr = !up && i < @map.size.x - 1 && j > 0 && @objects[i + 1][j - 1].obj && @objects[i + 1][j - 1].obj[0] == 'w'
-    return 11 if up && rt && dn && lf
-    return 10 if up && rt && dn
-    return 21 if up && rt && lf
-    return 12 if up && dn && lf
-    return 20 if up && rt
-    return 13 if up && dn
-    return 22 if up && lf
-    return 23 if up
-    return 6 if tl && tr && rt && dn && lf
-    return 4 if tl && rt && dn && lf
-    return 5 if tr && rt && dn && lf
-    return 16 if tl && tr && rt && lf
-    return 14 if tl && rt && lf
-    return 15 if tr && rt && lf
-    return 24 if tr && rt && dn
-    return 25 if tl && dn && lf
-    return 34 if tr && rt
-    return 35 if tl && lf
-    return 1 if rt && dn && lf
-    return 0 if rt && dn
-    return 31 if rt && lf
-    return 2 if dn && lf
-    return 30 if rt
-    return 3 if dn
-    return 32 if lf
-    33
+    tile =
+		if up && rt && dn && lf; 'b11'
+		elsif up && rt && dn; 'w10'
+		elsif up && rt && lf; 'w21'
+		elsif up && dn && lf; 'w12'
+		elsif up && rt; 'w20'
+		elsif up && dn; 'w13'
+		elsif up && lf; 'w22'
+		elsif up; 'w23'
+		elsif tl && tr && rt && dn && lf; 'w06'
+		elsif tl && rt && dn && lf; 'w04'
+		elsif tr && rt && dn && lf; 'w05'
+		elsif tl && tr && rt && lf; 'w16'
+		elsif tl && rt && lf; 'w14'
+		elsif tr && rt && lf; 'w15'
+		elsif tr && rt && dn; 'w24'
+		elsif tl && dn && lf; 'w25'
+		elsif tr && rt; 'w34'
+		elsif tl && lf; 'w35'
+		elsif rt && dn && lf; 'w01'
+		elsif rt && dn; 'w00'
+		elsif rt && lf; 'w31'
+		elsif dn && lf; 'w02'
+		elsif rt; 'w30'
+		elsif dn; 'w03'
+		elsif lf; 'w32'
+		else; 'w33'; end
+	@objects[i][j].back = tile[0] == 'b' ? tile : nil
+	@objects[i][j].obj = tile[0] == 'b' ? nil : tile
   end
 
   def reset_map(tiles_x, tiles_y)
@@ -539,8 +544,6 @@ class SBEditor < GameWindow
     end
 
     @floating_panels.each(&:draw)
-
-    @font2.draw(@cur_index.to_s, 0, 0, 1, 2, 2, BLACK)
 
     unless @over_panel.any?
       p = @map.get_map_pos(Mouse.x, Mouse.y)
