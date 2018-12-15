@@ -110,6 +110,7 @@ class SBEditor < GameWindow
       @elements << img
       (name.end_with?('!') ? @enemies : @objs) << img
     end
+
     @bomb = Res.img(:Bomb)
 
     save_confirm = false
@@ -303,21 +304,32 @@ class SBEditor < GameWindow
       ################################ Elementos ################################
       Panel.new(0, 0, 48, 300, [
         Button.new(x: 0, y: 4, img: :btn1, font: @font1, text: 'BOMB', scale_x: 2, scale_y: 2, anchor: :top) do
-
+          @cur_element = :bomb
         end,
         Label.new(x: 0, y: 48, font: @font1, text: 'Default', scale_x: 2, scale_y: 2, anchor: :top),
-        ToggleButton.new(x: 0, y: 60, img: :chk, checked: true, scale_x: 2, scale_y: 2, anchor: :top),
+        (@chk_default = ToggleButton.new(x: 0, y: 60, img: :chk, checked: true, scale_x: 2, scale_y: 2, anchor: :top)),
         (btn_obj = Button.new(x: 0, y: 100, img: :btn1, font: @font1, text: 'OBJ.', scale_x: 2, scale_y: 2, anchor: :top) do
           @floating_panels[2].visible = !@floating_panels[2].visible
         end),
         (btn_enemy = Button.new(x: 0, y: 144, img: :btn1, font: @font1, text: 'ENEMY', scale_x: 2, scale_y: 2, anchor: :top) do
           @floating_panels[3].visible = !@floating_panels[3].visible
         end),
-        TextField.new(x: 0, y: 188, img: :textField, font: @font2, margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, anchor: :top)
-      ], :pnl, :tiled, true, 2, 2, :right)
+        Button.new(x: 0, y: 188, img: :btn1, font: @font1, text: 'ARGS...', scale_x: 2, scale_y: 2, anchor: :top) do
+          @panels[4].visible = !@panels[4].visible
+        end
+      ], :pnl, :tiled, true, 2, 2, :right),
+      ###########################################################################
+
+      ################################ Argumentos ###############################
+      Panel.new(0, 0, 200, 70, [
+        Label.new(x: 0, y: 4, font: @font2, text: 'Arguments:', scale_x: 2, scale_y: 2, anchor: :top),
+        (@txt_args = TextField.new(x: 0, y: 30, img: :textField2, font: @font2, margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, anchor: :top))
+      ], :pnl, :tiled, true, 2, 2, :center)
       ###########################################################################
 
     ]
+
+    @panels[4].visible = false
 
     @floating_panels = [
       FloatingPanel.new(:tile, other_tile_btn.x + 40, other_tile_btn.y, 337, 172, @tilesets[@cur_tileset][50..-1].map.with_index{ |t, i| { img: t, x: 4 + (i % 10) * 33, y: 4 + (i / 10) * 33 } }, self),
@@ -351,7 +363,7 @@ class SBEditor < GameWindow
     Mouse.update
     close if KB.key_pressed? Gosu::KbEscape
 
-    @over_panel = [false, false, false, false]
+    @over_panel = [false, false, false, false, false]
     @dropdowns.each_with_index do |d, i|
       h = d.instance_eval('@open') ? d.instance_eval('@max_h') : d.h
       @over_panel[i < 3 ? 0 : 1] = true if Mouse.over?(d.x, d.y, d.w, h)
@@ -365,6 +377,8 @@ class SBEditor < GameWindow
       @over_panel[i] = true if Mouse.over?(p.x, p.y, p.w, p.h)
     end
 
+    @panels[4].visible = !@panels[4].visible if KB.key_pressed?(Gosu::KbReturn)
+
     speed = KB.key_down?(Gosu::KbLeftShift) || KB.key_down?(Gosu::KbRightShift) ? 10 : 20
     @map.move_camera 0, -speed if KB.key_down? Gosu::KbUp
     @map.move_camera speed, 0 if KB.key_down? Gosu::KbRight
@@ -374,8 +388,23 @@ class SBEditor < GameWindow
     return if @over_panel.any?
 
     ctrl = KB.key_down?(Gosu::KbLeftControl) || KB.key_down?(Gosu::KbRightControl)
-    if Mouse.button_down? :left
-      mp = @map.get_map_pos(Mouse.x, Mouse.y)
+    mp = @map.get_map_pos(Mouse.x, Mouse.y)
+    if Mouse.button_pressed?(:left)
+      if ctrl
+        @txt_args.text += (@txt_args.text.empty? ? '' : '|') + "#{mp.x},#{mp.y}"
+      else
+        case @cur_element
+        when :ramp
+          @ramps << (@cur_index < 4 ? 'l' : 'r') + @ramp_sizes[@cur_index % 4] + ":#{mp.x},#{mp.y}"
+          @ramp_tiles[@cur_index].each do |t|
+            @objects[mp.x + t[0]][mp.y + t[1]].obj = nil
+            @objects[mp.x + t[0]][mp.y + t[1]].back = 'b%02d' % t[2]
+          end
+        when :bomb
+          @objects[mp.x][mp.y].obj = '!' + @txt_args.text + (@chk_default.checked ? '!' : '')
+        end
+      end
+    elsif Mouse.button_down? :left
       case @cur_element
       when :wall
         set_wall_tile(mp.x, mp.y, true)
@@ -385,13 +414,6 @@ class SBEditor < GameWindow
         set_wall_tile(mp.x - 1, mp.y)
         set_wall_tile(mp.x - 1, mp.y + 1)
         set_wall_tile(mp.x + 1, mp.y + 1)
-      when :ramp
-        return unless Mouse.button_pressed?(:left)
-        @ramps << (@cur_index < 4 ? 'l' : 'r') + @ramp_sizes[@cur_index % 4] + ":#{mp.x},#{mp.y}"
-        @ramp_tiles[@cur_index].each do |t|
-          @objects[mp.x + t[0]][mp.y + t[1]].obj = nil
-          @objects[mp.x + t[0]][mp.y + t[1]].back = 'b%02d' % t[2]
-        end
       when :hide
         @objects[mp.x][mp.y].hide = 'h00'
       when :tile
@@ -400,7 +422,6 @@ class SBEditor < GameWindow
         @objects[mp.x][mp.y].send(prop, t + '%02d' % (50 + @cur_index))
       end
     elsif Mouse.button_pressed?(:right) || ctrl && Mouse.button_down?(:right)
-      mp = @map.get_map_pos(Mouse.x, Mouse.y)
       @ramps.each do |ramp|
         coords = ramp.split(':')[1].split(',')
         x = coords[0].to_i; y = coords[1].to_i
