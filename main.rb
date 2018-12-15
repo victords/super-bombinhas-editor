@@ -339,6 +339,7 @@ class SBEditor < GameWindow
       [[0, 0, 27], [1, 0, 28], [0, 1, 11], [1, 1, 38], [2, 1, 39]], # r 3x2
       [[0, 0, 19], [0, 1, 29]], # r 1x2
     ]
+    @wall_ish_tiles = [11, 7, 46, 47, 8, 9, 17, 18, 26, 36, 37, 48, 49, 27, 28, 38, 39, 19, 29]
   end
 
   def needs_cursor?
@@ -425,42 +426,46 @@ class SBEditor < GameWindow
 
   def set_wall_tile(i, j, must_set = false)
     return if i < 0 || j < 0 || i >= @map.size.x || j >= @map.size.y
-	return unless must_set || @objects[i][j].obj && @objects[i][j].obj[0] == 'w' || @objects[i][j].back == 'b11'
-	up = j == 0 || @objects[i][j - 1].obj && @objects[i][j - 1].obj[0] == 'w' || @objects[i][j - 1].back == 'b11'
-    rt = i == @map.size.x - 1 || @objects[i + 1][j].obj && @objects[i + 1][j].obj[0] == 'w' || @objects[i + 1][j].back == 'b11'
-    dn = j == @map.size.y - 1 || @objects[i][j + 1].obj && @objects[i][j + 1].obj[0] == 'w' || @objects[i][j + 1].back == 'b11'
-    lf = i == 0 || @objects[i - 1][j].obj && @objects[i - 1][j].obj[0] == 'w' || @objects[i - 1][j].back == 'b11'
-    tl = !up && i > 0 && j > 0 && @objects[i - 1][j - 1].obj && @objects[i - 1][j - 1].obj[0] == 'w'
-    tr = !up && i < @map.size.x - 1 && j > 0 && @objects[i + 1][j - 1].obj && @objects[i + 1][j - 1].obj[0] == 'w'
+    return unless must_set || @objects[i][j].obj && @objects[i][j].obj[0] == 'w' || @objects[i][j].back == 'b11'
+    up = j == 0 || @objects[i][j - 1].obj && @objects[i][j - 1].obj[0] == 'w' || wall_ish_tile?(i, j - 1)
+    rt = i == @map.size.x - 1 || @objects[i + 1][j].obj && @objects[i + 1][j].obj[0] == 'w' || wall_ish_tile?(i + 1, j)
+    dn = j == @map.size.y - 1 || @objects[i][j + 1].obj && @objects[i][j + 1].obj[0] == 'w' || wall_ish_tile?(i, j + 1)
+    lf = i == 0 || @objects[i - 1][j].obj && @objects[i - 1][j].obj[0] == 'w' || wall_ish_tile?(i - 1, j)
+    tl = !up && i > 0 && j > 0 && (@objects[i - 1][j - 1].obj && @objects[i - 1][j - 1].obj[0] == 'w' || wall_ish_tile?(i - 1, j) || wall_ish_tile?(i - 1, j - 1))
+    tr = !up && i < @map.size.x - 1 && j > 0 && (@objects[i + 1][j - 1].obj && @objects[i + 1][j - 1].obj[0] == 'w' || wall_ish_tile?(i + 1, j) || wall_ish_tile?(i + 1, j - 1))
     tile =
-		if up && rt && dn && lf; 'b11'
-		elsif up && rt && dn; 'w10'
-		elsif up && rt && lf; 'w21'
-		elsif up && dn && lf; 'w12'
-		elsif up && rt; 'w20'
-		elsif up && dn; 'w13'
-		elsif up && lf; 'w22'
-		elsif up; 'w23'
-		elsif tl && tr && rt && dn && lf; 'w06'
-		elsif tl && rt && dn && lf; 'w04'
-		elsif tr && rt && dn && lf; 'w05'
-		elsif tl && tr && rt && lf; 'w16'
-		elsif tl && rt && lf; 'w14'
-		elsif tr && rt && lf; 'w15'
-		elsif tr && rt && dn; 'w24'
-		elsif tl && dn && lf; 'w25'
-		elsif tr && rt; 'w34'
-		elsif tl && lf; 'w35'
-		elsif rt && dn && lf; 'w01'
-		elsif rt && dn; 'w00'
-		elsif rt && lf; 'w31'
-		elsif dn && lf; 'w02'
-		elsif rt; 'w30'
-		elsif dn; 'w03'
-		elsif lf; 'w32'
-		else; 'w33'; end
-	@objects[i][j].back = tile[0] == 'b' ? tile : nil
-	@objects[i][j].obj = tile[0] == 'b' ? nil : tile
+      if up && rt && dn && lf; 'b11'
+      elsif up && rt && dn; 'w10'
+      elsif up && rt && lf; 'w21'
+      elsif up && dn && lf; 'w12'
+      elsif up && rt; 'w20'
+      elsif up && dn; 'w13'
+      elsif up && lf; 'w22'
+      elsif up; 'w23'
+      elsif tl && tr && rt && dn && lf; 'w06'
+      elsif tl && rt && dn && lf; 'w04'
+      elsif tr && rt && dn && lf; 'w05'
+      elsif tl && tr && rt && lf; 'w16'
+      elsif tl && rt && lf; 'w14'
+      elsif tr && rt && lf; 'w15'
+      elsif tr && rt && dn; 'w24'
+      elsif tl && dn && lf; 'w25'
+      elsif tr && rt; 'w34'
+      elsif tl && lf; 'w35'
+      elsif rt && dn && lf; 'w01'
+      elsif rt && dn; 'w00'
+      elsif rt && lf; 'w31'
+      elsif dn && lf; 'w02'
+      elsif rt; 'w30'
+      elsif dn; 'w03'
+      elsif lf; 'w32'
+      else; 'w33'; end
+    @objects[i][j].back = tile[0] == 'b' ? tile : nil
+    @objects[i][j].obj = tile[0] == 'b' ? nil : tile
+  end
+
+  def wall_ish_tile?(i, j)
+    @objects[i][j].back && @wall_ish_tiles.include?(@objects[i][j].back[1..-1].to_i)
   end
 
   def reset_map(tiles_x, tiles_y)
