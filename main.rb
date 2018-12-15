@@ -100,8 +100,8 @@ class SBEditor < GameWindow
 
     @cur_exit = 0
 
-    el_files = Dir["#{Res.prefix}#{Res.img_dir}el/*"]
-    @elements = []
+    el_files = Dir["#{Res.prefix}#{Res.img_dir}el/*"].sort
+    @elements = [nil]
     @enemies = []
     @objs = []
     el_files.each do |f|
@@ -175,6 +175,7 @@ class SBEditor < GameWindow
         (txt_stage = TextField.new(x: 157, y: 0, font: @font2, img: :textField, margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, text: '1', anchor: :left)),
         Label.new(x: 207, y: 0, font: @font2, text: 'Section', scale_x: 2, scale_y: 2, anchor: :left),
         (txt_section = TextField.new(x: 277, y: 0, font: @font2, img: :textField, margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, text: '1', anchor: :left)),
+        (lbl_conf_save = Label.new(x: 0, y: 50, font: @font2, text: 'Salvar por cima?', scale_x: 2, scale_y: 2, anchor: :bottom)),
         Button.new(x: 48, y: 0, img: :btn1, font: @font1, text: 'LOAD', scale_x: 2, scale_y: 2, anchor: :right) do
           path = "#{@dir}/stage/#{txt_world.text}/#{txt_stage.text}-#{txt_section.text}"
           if File.exist? path
@@ -245,14 +246,13 @@ class SBEditor < GameWindow
           end
         end,
         Button.new(x: 4, y: 0, img: :btn1, font: @font1, text: 'SAVE', scale_x: 2, scale_y: 2, anchor: :right) do
-          path = "#{@dir}/#{name.gsub('|', '/')}"
+          path = "#{@dir}/stage/#{txt_world.text}/#{txt_stage.text}-#{txt_section.text}"
           will_save = if save_confirm
-                        save_confirm = false
+                        save_confirm = lbl_conf_save.visible = false
                         File.delete path
                         true
                       elsif File.exist? path
-                        @msg = 'Salvar por cima?'
-                        save_confirm = true
+                        save_confirm = lbl_conf_save.visible = true
                         false
                       else
                         true
@@ -295,7 +295,6 @@ class SBEditor < GameWindow
             code.chop! unless @ramps.empty?
 
             File.open(path, 'w') { |f| f.write code }
-            @msg = 'Arquivo salvo'
           end
         end,
       ], :pnl, :tiled, true, 2, 2, :bottom),
@@ -315,7 +314,7 @@ class SBEditor < GameWindow
           @floating_panels[3].visible = !@floating_panels[3].visible
         end),
         Button.new(x: 0, y: 188, img: :btn1, font: @font1, text: 'ARGS...', scale_x: 2, scale_y: 2, anchor: :top) do
-          @panels[4].visible = !@panels[4].visible
+          toggle_args_panel
         end
       ], :pnl, :tiled, true, 2, 2, :right),
       ###########################################################################
@@ -329,7 +328,7 @@ class SBEditor < GameWindow
 
     ]
 
-    @panels[4].visible = false
+    @panels[4].visible = lbl_conf_save.visible = false
 
     @floating_panels = [
       FloatingPanel.new(:tile, other_tile_btn.x + 40, other_tile_btn.y, 337, 172, @tilesets[@cur_tileset][50..-1].map.with_index{ |t, i| { img: t, x: 4 + (i % 10) * 33, y: 4 + (i / 10) * 33 } }, self),
@@ -362,6 +361,7 @@ class SBEditor < GameWindow
     KB.update
     Mouse.update
     close if KB.key_pressed? Gosu::KbEscape
+    toggle_args_panel if KB.key_pressed?(Gosu::KbReturn)
 
     @over_panel = [false, false, false, false, false]
     @dropdowns.each_with_index do |d, i|
@@ -374,10 +374,8 @@ class SBEditor < GameWindow
     end
     @panels.each_with_index do |p, i|
       p.update
-      @over_panel[i] = true if Mouse.over?(p.x, p.y, p.w, p.h)
+      @over_panel[i] = true if p.visible && Mouse.over?(p.x, p.y, p.w, p.h)
     end
-
-    @panels[4].visible = !@panels[4].visible if KB.key_pressed?(Gosu::KbReturn)
 
     speed = KB.key_down?(Gosu::KbLeftShift) || KB.key_down?(Gosu::KbRightShift) ? 10 : 20
     @map.move_camera 0, -speed if KB.key_down? Gosu::KbUp
@@ -404,7 +402,7 @@ class SBEditor < GameWindow
           @objects[mp.x][mp.y].obj = '!' + @txt_args.text + (@chk_default.checked ? '!' : '')
         end
       end
-    elsif Mouse.button_down? :left
+    elsif !ctrl && Mouse.button_down?(:left)
       case @cur_element
       when :wall
         set_wall_tile(mp.x, mp.y, true)
@@ -420,6 +418,10 @@ class SBEditor < GameWindow
         t = @ddl_tile_type.value
         prop = t == 'w' || t == 'p' ? :obj= : t == 'b' ? :back= : :fore=
         @objects[mp.x][mp.y].send(prop, t + '%02d' % (50 + @cur_index))
+      when :obj
+        @objects[mp.x][mp.y].obj = '@' + '%02d' % (@elements.index(@objs[@cur_index])) + (@txt_args.text.empty? ? '' : ":#{@txt_args.text}")
+      when :enemy
+        @objects[mp.x][mp.y].obj = '@' + '%02d' % (@elements.index(@enemies[@cur_index])) + (@txt_args.text.empty? ? '' : ":#{@txt_args.text}")
       end
     elsif Mouse.button_pressed?(:right) || ctrl && Mouse.button_down?(:right)
       @ramps.each do |ramp|
@@ -448,6 +450,15 @@ class SBEditor < GameWindow
       else
         @objects[mp.x][mp.y].back = nil
       end
+    end
+  end
+
+  def toggle_args_panel
+    @panels[4].visible = !@panels[4].visible
+    if @panels[4].visible
+      @txt_args.focus
+    else
+      @txt_args.unfocus
     end
   end
 
@@ -601,10 +612,10 @@ class SBEditor < GameWindow
         @font1.draw obj[1..-1], x, y, 0, 2, 2, BLACK
       else
         code = obj[1..-1].split(':')
-        @elements[code[0].to_i].draw x, y, 0
+        @elements[code[0].to_i].draw x, y, 0, 2, 2
         if code.size > 1
           code[1..-1].each_with_index do |c, i|
-            @font1.draw c, x, y + i * 9, 0, 0.75, 0.75, BLACK
+            @font1.draw c, x, y + i * 9, 0, 2, 2, BLACK
           end
         end
       end
