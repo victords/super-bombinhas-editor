@@ -119,23 +119,22 @@ class SBEditor < GameWindow
       ################################## Geral ##################################
       Panel.new(0, 0, 500, 48, [
         Label.new(x: 10, y: 0, font: @font2, text: 'W', scale_x: 2, scale_y: 2, anchor: :left),
-        (txt_w = TextField.new(x: 20, y: 0, img: :textField, font: @font2, text: '300', allowed_chars: '0123456789', margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, anchor: :left) do |t|
-          reset_map(t.to_i, @tiles_y)
-        end),
+        (txt_w = TextField.new(x: 20, y: 0, img: :textField, font: @font2, text: '300', allowed_chars: '0123456789', margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, anchor: :left)),
         Label.new(x: 70, y: 0, font: @font2, text: 'H', scale_x: 2, scale_y: 2, anchor: :left),
-        (txt_h = TextField.new(x: 86, y: 0, img: :textField, font: @font2, text: '300', allowed_chars: '0123456789', margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, anchor: :left) do |t|
-          reset_map(@tiles_x, t.to_i)
-        end),
-        Label.new(x: 136, y: 0, font: @font2, text: 'BG', scale_x: 2, scale_y: 2, anchor: :left),
-        (ddl_bg = DropDownList.new(x: 160, y: 0, font: @font2, img: :ddl, opt_img: :ddlOpt, options: bg_options, text_margin: 4, scale_x: 2, scale_y: 2, anchor: :left) do |_, v|
+        (txt_h = TextField.new(x: 86, y: 0, img: :textField, font: @font2, text: '300', allowed_chars: '0123456789', margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, anchor: :left)),
+        Button.new(x: 130, y: 0, img: :btn1, font: @font2, text: 'OK', scale_x: 2, scale_y: 2, anchor: :left) do
+          reset_map(txt_w.text.to_i, txt_h.text.to_i)
+        end,
+        Label.new(x: 180, y: 0, font: @font2, text: 'BG', scale_x: 2, scale_y: 2, anchor: :left),
+        (ddl_bg = DropDownList.new(x: 204, y: 0, font: @font2, img: :ddl, opt_img: :ddlOpt, options: bg_options, text_margin: 4, scale_x: 2, scale_y: 2, anchor: :left) do |_, v|
           @cur_bg = bg_options.index(v)
         end),
-        Label.new(x: 204, y: 0, font: @font2, text: 'BGM', scale_x: 2, scale_y: 2, anchor: :left),
-        (ddl_bgm = DropDownList.new(x: 240, y: 0, font: @font2, img: :ddl, opt_img: :ddlOpt, options: bgm_options, text_margin: 4, scale_x: 2, scale_y: 2, anchor: :left) do |_, v|
+        Label.new(x: 248, y: 0, font: @font2, text: 'BGM', scale_x: 2, scale_y: 2, anchor: :left),
+        (ddl_bgm = DropDownList.new(x: 284, y: 0, font: @font2, img: :ddl, opt_img: :ddlOpt, options: bgm_options, text_margin: 4, scale_x: 2, scale_y: 2, anchor: :left) do |_, v|
           @cur_bgm = bgm_options.index(v)
         end),
-        Label.new(x: 285, y: 0, font: @font2, text: 'Exit', scale_x: 2, scale_y: 2, anchor: :left),
-        (ddl_exit = DropDownList.new(x: 325, y: 0, font: @font2, img: :ddl, opt_img: :ddlOpt, options: exit_options, text_margin: 4, scale_x: 2, scale_y: 2, anchor: :left) do |_, v|
+        Label.new(x: 330, y: 0, font: @font2, text: 'Exit', scale_x: 2, scale_y: 2, anchor: :left),
+        (ddl_exit = DropDownList.new(x: 370, y: 0, font: @font2, img: :ddl, opt_img: :ddlOpt, options: exit_options, text_margin: 4, scale_x: 2, scale_y: 2, anchor: :left) do |_, v|
           @cur_exit = exit_options.index(v)
         end),
         Label.new(x: 30, y: 0, font: @font2, text: 'Dark', scale_x: 2, scale_y: 2, anchor: :right),
@@ -485,6 +484,13 @@ class SBEditor < GameWindow
         (@tiles_y...tiles_y).each { |j| o[j] = Cell.new }
       end
     end
+    ramps_to_remove = []
+    @ramps.each do |r|
+      w = r[1].to_i; h = r[2].to_i
+      x, y = r.split(':')[1].split(',').map(&:to_i)
+      ramps_to_remove << r if x + w > tiles_x || y + h > tiles_y
+    end
+    @ramps -= ramps_to_remove
     @map = Map.new 32, 32, tiles_x, tiles_y, @scr_w, @scr_h
     @tiles_x = tiles_x; @tiles_y = tiles_y
   end
