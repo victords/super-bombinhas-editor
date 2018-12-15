@@ -159,7 +159,8 @@ class SBEditor < GameWindow
         (other_tile_btn = Button.new(x: 0, y: 38 + 132, img: :btn1, font: @font1, text: 'OTHER', scale_x: 2, scale_y: 2, anchor: :top) do
           @floating_panels[0].visible = !@floating_panels[0].visible
         end),
-        (ramp_btn = Button.new(x: 0, y: 38 + 176, img: :btn1, font: @font1, text: 'RAMP', scale_x: 2, scale_y: 2, anchor: :top) do
+        (@ddl_tile_type = DropDownList.new(x: 0, y: 38 + 176, font: @font2, img: :ddl, opt_img: :ddlOpt, options: %w(w p b f), text_margin: 4, scale_x: 2, scale_y: 2, anchor: :top)),
+        (ramp_btn = Button.new(x: 0, y: 38 + 220, img: :btn1, font: @font1, text: 'RAMP', scale_x: 2, scale_y: 2, anchor: :top) do
           @floating_panels[1].visible = !@floating_panels[1].visible
         end),
       ], :pnl, :tiled, true, 2, 2, :left),
@@ -325,7 +326,7 @@ class SBEditor < GameWindow
       FloatingPanel.new(:enemy, btn_enemy.x - 337, btn_enemy.y, 337, 300, @enemies.map.with_index{ |o, i| { img: o, x: 4 + (i % 10) * 33, y: 4 + (i / 10) * 33 } }, self),
     ]
 
-    @dropdowns = [ddl_bg, ddl_bgm, ddl_exit, ddl_ts]
+    @dropdowns = [ddl_bg, ddl_bgm, ddl_exit, ddl_ts, @ddl_tile_type]
 
     @ramp_sizes = %w(11 21 32 12)
     @ramp_tiles = [
@@ -391,8 +392,14 @@ class SBEditor < GameWindow
           @objects[mp.x + t[0]][mp.y + t[1]].obj = nil
           @objects[mp.x + t[0]][mp.y + t[1]].back = 'b%02d' % t[2]
         end
+      when :hide
+        @objects[mp.x][mp.y].hide = 'h00'
+      when :tile
+        t = @ddl_tile_type.value
+        prop = t == 'w' || t == 'p' ? :obj= : t == 'b' ? :back= : :fore=
+        @objects[mp.x][mp.y].send(prop, t + '%02d' % (50 + @cur_index))
       end
-    elsif Mouse.button_down? :right
+    elsif Mouse.button_pressed?(:right) || ctrl && Mouse.button_down?(:right)
       mp = @map.get_map_pos(Mouse.x, Mouse.y)
       @ramps.each do |ramp|
         coords = ramp.split(':')[1].split(',')
