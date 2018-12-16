@@ -392,6 +392,8 @@ class SBEditor < GameWindow
         @txt_args.text += (@txt_args.text.empty? ? '' : '|') + "#{mp.x},#{mp.y}"
       else
         case @cur_element
+        when :pass
+          @pass_start = [mp.x, mp.y]
         when :ramp
           @ramps << (@cur_index < 4 ? 'l' : 'r') + @ramp_sizes[@cur_index % 4] + ":#{mp.x},#{mp.y}"
           @ramp_tiles[@cur_index].each do |t|
@@ -423,6 +425,21 @@ class SBEditor < GameWindow
       when :enemy
         @objects[mp.x][mp.y].obj = '@' + '%02d' % (@elements.index(@enemies[@cur_index])) + (@txt_args.text.empty? ? '' : ":#{@txt_args.text}")
       end
+    elsif Mouse.button_released?(:left) && @cur_element == :pass
+      min_x, max_x = mp.x < @pass_start[0] ? [mp.x, @pass_start[0]] : [@pass_start[0], mp.x]
+      min_y, max_y = mp.y < @pass_start[1] ? [mp.y, @pass_start[1]] : [@pass_start[1], mp.y]
+      w = max_x - min_x + 1
+      h = max_y - min_y + 1
+      (min_y..max_y).each do |j|
+        (min_x..max_x).each do |i|
+          if j == min_y
+            @objects[i][j].obj = 'p' + (i == min_x ? '40' : i == max_x ? '42' : '41')
+          else
+            @objects[i][j].back = 'b' + (i == min_x ? '43' : i == max_x ? '45' : '44')
+          end
+        end
+      end
+      @pass_start = nil
     elsif Mouse.button_pressed?(:right) || ctrl && Mouse.button_down?(:right)
       @ramps.each do |ramp|
         coords = ramp.split(':')[1].split(',')
@@ -608,7 +625,7 @@ class SBEditor < GameWindow
         @tilesets[@cur_tileset][obj[1..2].to_i].draw x, y, 0, 2, 2
         @font1.draw obj[0], x + 20, y - 2, 1, 2, 2, BLACK
       elsif obj[0] == '!'
-        @bomb.draw x, y, 0
+        @bomb.draw x, y, 0, 2, 2
         @font1.draw obj[1..-1], x, y, 0, 2, 2, BLACK
       else
         code = obj[1..-1].split(':')
