@@ -161,7 +161,7 @@ class SBEditor < GameWindow
           @floating_panels[0].visible = !@floating_panels[0].visible
         end),
         (@ddl_tile_type = DropDownList.new(x: 0, y: 38 + 176, font: @font2, img: :ddl, opt_img: :ddlOpt, options: %w(w p b f), text_margin: 4, scale_x: 2, scale_y: 2, anchor: :top)),
-        (ramp_btn = Button.new(x: 0, y: 38 + 220, img: :btn1, font: @font1, text: 'RAMP', scale_x: 2, scale_y: 2, anchor: :top) do
+        (ramp_btn = Button.new(x: 0, y: 38 + 216, img: :btn1, font: @font1, text: 'RAMP', scale_x: 2, scale_y: 2, anchor: :top) do
           @floating_panels[1].visible = !@floating_panels[1].visible
         end),
       ], :pnl, :tiled, true, 2, 2, :left),
@@ -267,12 +267,12 @@ class SBEditor < GameWindow
                 next if i == 0 && j == 0
                 element = get_cell_string i, j
                 if element == last_element &&
-                    (last_element == '' ||
-                        ((last_element[0] == 'w' ||
-                            last_element[0] == 'p' ||
-                            last_element[0] == 'b' ||
-                            last_element[0] == 'f' ||
-                            last_element[0] == 'h') && last_element.size == 3))
+                  (last_element == '' ||
+                    ((last_element[0] == 'w' ||
+                      last_element[0] == 'p' ||
+                      last_element[0] == 'b' ||
+                      last_element[0] == 'f' ||
+                      last_element[0] == 'h') && last_element.size == 3))
                   count += 1
                 else
                   if last_element == ''
@@ -387,7 +387,9 @@ class SBEditor < GameWindow
 
     ctrl = KB.key_down?(Gosu::KbLeftControl) || KB.key_down?(Gosu::KbRightControl)
     mp = @map.get_map_pos(Mouse.x, Mouse.y)
-    if Mouse.button_pressed?(:left)
+    if Mouse.double_click?(:left)
+      check_fill(mp.x, mp.y)
+    elsif Mouse.button_pressed?(:left)
       if ctrl
         @txt_args.text += (@txt_args.text.empty? ? '' : '|') + "#{mp.x},#{mp.y}"
       else
@@ -408,12 +410,7 @@ class SBEditor < GameWindow
       case @cur_element
       when :wall
         set_wall_tile(mp.x, mp.y, true)
-        set_wall_tile(mp.x, mp.y - 1)
-        set_wall_tile(mp.x + 1, mp.y)
-        set_wall_tile(mp.x, mp.y + 1)
-        set_wall_tile(mp.x - 1, mp.y)
-        set_wall_tile(mp.x - 1, mp.y + 1)
-        set_wall_tile(mp.x + 1, mp.y + 1)
+        set_surrounding_wall_tiles(mp.x, mp.y)
       when :hide
         @objects[mp.x][mp.y].hide = 'h00'
       when :tile
@@ -457,15 +454,11 @@ class SBEditor < GameWindow
         wall = @objects[mp.x][mp.y].obj[0] == 'w'
         @objects[mp.x][mp.y].obj = nil
         if wall
-          set_wall_tile(mp.x, mp.y - 1)
-          set_wall_tile(mp.x + 1, mp.y)
-          set_wall_tile(mp.x, mp.y + 1)
-          set_wall_tile(mp.x - 1, mp.y)
-          set_wall_tile(mp.x - 1, mp.y + 1)
-          set_wall_tile(mp.x + 1, mp.y + 1)
+          set_surrounding_wall_tiles(mp.x, mp.y)
         end
       else
         @objects[mp.x][mp.y].back = nil
+        set_surrounding_wall_tiles(mp.x, mp.y)
       end
     end
   end
@@ -519,6 +512,15 @@ class SBEditor < GameWindow
     @objects[i][j].obj = tile[0] == 'b' ? nil : tile
   end
 
+  def set_surrounding_wall_tiles(i, j)
+    set_wall_tile(i, j - 1)
+    set_wall_tile(i + 1, j)
+    set_wall_tile(i, j + 1)
+    set_wall_tile(i - 1, j)
+    set_wall_tile(i - 1, j + 1)
+    set_wall_tile(i + 1, j + 1)
+  end
+
   def wall_ish_tile?(i, j)
     @objects[i][j].back && @wall_ish_tiles.include?(@objects[i][j].back[1..-1].to_i)
   end
@@ -551,13 +553,18 @@ class SBEditor < GameWindow
     @tiles_x = tiles_x; @tiles_y = tiles_y
   end
 
-  def check_fill(i, j, code)
-    if @tile_type == 2; @objects[i][j].back = code
-    else; @objects[i][j].hide = 'h00'; end
-    check_fill i - 1, j, code if i > 0 and cell_empty?(i - 1, j, @tile_type == 4)
-    check_fill i + 1, j, code if i < @tiles_x - 1 and cell_empty?(i + 1, j, @tile_type == 4)
-    check_fill i, j - 1, code if j > 0 and cell_empty?(i, j - 1, @tile_type == 4)
-    check_fill i, j + 1, code if j < @tiles_y - 1 and cell_empty?(i, j + 1, @tile_type == 4)
+  def check_fill(i, j)
+    return if @cur_element != :wall && @cur_element != :hide
+    if @cur_element == :wall
+      @objects[i][j].back = 'b11'
+      set_surrounding_wall_tiles(i, j)
+    else
+      @objects[i][j].hide = 'h00'
+    end
+    check_fill i - 1, j if i > 0 and cell_empty?(i - 1, j, @cur_element == :hide)
+    check_fill i + 1, j if i < @tiles_x - 1 and cell_empty?(i + 1, j, @cur_element == :hide)
+    check_fill i, j - 1 if j > 0 and cell_empty?(i, j - 1, @cur_element == :hide)
+    check_fill i, j + 1 if j < @tiles_y - 1 and cell_empty?(i, j + 1, @cur_element == :hide)
   end
 
   def cell_empty?(i, j, hide)
