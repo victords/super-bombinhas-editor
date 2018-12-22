@@ -315,6 +315,9 @@ class SBEditor < GameWindow
         end),
         Button.new(x: 0, y: 188, img: :btn1, font: @font1, text: 'ARGS...', scale_x: 2, scale_y: 2, anchor: :top) do
           toggle_args_panel
+        end,
+        Button.new(x: 0, y: 4, img: :btn1, font: @font1, text: 'offset', scale_x: 2, scale_y: 2, anchor: :bottom) do
+          toggle_offset_panel
         end
       ], :pnl, :tiled, true, 2, 2, :right),
       ###########################################################################
@@ -323,12 +326,35 @@ class SBEditor < GameWindow
       Panel.new(0, 0, 200, 70, [
         Label.new(x: 0, y: 4, font: @font2, text: 'Arguments:', scale_x: 2, scale_y: 2, anchor: :top),
         (@txt_args = TextField.new(x: 0, y: 30, img: :textField2, font: @font2, margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, anchor: :top))
+      ], :pnl, :tiled, true, 2, 2, :center),
+      ###########################################################################
+
+      ################################## Offset #################################
+      Panel.new(0, 0, 200, 70, [
+        Label.new(x: 0, y: 4, font: @font2, text: 'Offset', scale_x: 2, scale_y: 2, anchor: :top),
+        Label.new(x: 4, y: 7, font: @font2, text: 'X', scale_x: 2, scale_y: 2, anchor: :left),
+        (@txt_offset_x = TextField.new(x: 34, y: 7, img: :textField, font: @font2, margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, anchor: :left)),
+        Label.new(x: 79, y: 7, font: @font2, text: 'Y', scale_x: 2, scale_y: 2, anchor: :left),
+        (@txt_offset_y = TextField.new(x: 109, y: 7, img: :textField, font: @font2, margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, anchor: :left)),
+        Button.new(x: 4, y: 7, img: :btn1, font: @font2, text: 'OK', scale_x: 2, scale_y: 2, anchor: :right) do
+          o_x = @txt_offset_x.text.to_i
+          o_y = @txt_offset_y.text.to_i
+          x_range = o_x > 0 ? (@tiles_x - 1).downto(0) : 0.upto(@tiles_x - 1)
+          y_range = o_y > 0 ? (@tiles_y - 1).downto(0) : 0.upto(@tiles_y - 1)
+          x_range.each do |i|
+            y_range.each do |j|
+              ii = i + o_x; jj = j + o_y
+              @objects[ii][jj] = @objects[i][j] if ii >= 0 && ii < @tiles_x && jj >= 0 && jj < @tiles_y
+              @objects[i][j] = Cell.new
+            end
+          end
+        end
       ], :pnl, :tiled, true, 2, 2, :center)
       ###########################################################################
 
     ]
 
-    @panels[4].visible = lbl_conf_save.visible = false
+    @panels[4].visible = @panels[5].visible = lbl_conf_save.visible = false
 
     @floating_panels = [
       FloatingPanel.new(:tile, other_tile_btn.x + 40, other_tile_btn.y, 337, 172, @tilesets[@cur_tileset][50..-1].map.with_index{ |t, i| { img: t, x: 4 + (i % 10) * 33, y: 4 + (i / 10) * 33 } }, self),
@@ -362,6 +388,7 @@ class SBEditor < GameWindow
     Mouse.update
     close if KB.key_pressed? Gosu::KbEscape
     toggle_args_panel if KB.key_pressed?(Gosu::KbReturn)
+    toggle_offset_panel if KB.key_pressed?(Gosu::KbTab)
 
     @over_panel = [false, false, false, false, false]
     @dropdowns.each_with_index do |d, i|
@@ -387,6 +414,7 @@ class SBEditor < GameWindow
 
     ctrl = KB.key_down?(Gosu::KbLeftControl) || KB.key_down?(Gosu::KbRightControl)
     mp = @map.get_map_pos(Mouse.x, Mouse.y)
+    return if mp.x >= @tiles_x || mp.y >= @tiles_y
     if Mouse.double_click?(:left)
       check_fill(mp.x, mp.y)
     elsif Mouse.button_pressed?(:left)
@@ -469,6 +497,16 @@ class SBEditor < GameWindow
       @txt_args.focus
     else
       @txt_args.unfocus
+    end
+  end
+
+  def toggle_offset_panel
+    @panels[5].visible = !@panels[5].visible
+    if @panels[5].visible
+      @txt_offset_x.focus
+    else
+      @txt_offset_x.unfocus
+      @txt_offset_y.unfocus
     end
   end
 
