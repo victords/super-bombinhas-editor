@@ -419,7 +419,7 @@ class SBEditor < GameWindow
       check_fill(mp.x, mp.y)
     elsif Mouse.button_pressed?(:left)
       if ctrl
-        @txt_args.text += (@txt_args.text.empty? ? '' : '|') + "#{mp.x},#{mp.y}"
+        @txt_args.text += (@txt_args.text.empty? ? '' : ':') + "#{mp.x},#{mp.y}"
       else
         case @cur_element
         when :pass
