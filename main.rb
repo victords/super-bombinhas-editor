@@ -19,7 +19,8 @@ class FloatingPanel
       Button.new(x: @x + c[:x], y: @y + c[:y], width: c[:img].width * 2, height: c[:img].height * 2, params: i) do |p|
         editor.cur_element = element_type
         editor.cur_index = p
-        @visible = false
+        editor.txt_args.text = ''
+		@visible = false
       end
     end
     @visible = false
@@ -51,6 +52,7 @@ class SBEditor < GameWindow
   BLACK = 0xff000000
   WHITE = 0xffffffff
 
+  attr_reader :txt_args
   attr_writer :cur_element, :cur_index
 
   def initialize
