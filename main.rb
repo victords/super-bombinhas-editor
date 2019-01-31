@@ -178,6 +178,13 @@ class SBEditor < GameWindow
         Label.new(x: 207, y: 0, font: @font2, text: 'Section', scale_x: 2, scale_y: 2, anchor: :left),
         (txt_section = TextField.new(x: 277, y: 0, font: @font2, img: :textField, margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, text: '1', anchor: :left)),
         (lbl_conf_save = Label.new(x: 0, y: 50, font: @font2, text: 'Salvar por cima?', scale_x: 2, scale_y: 2, anchor: :bottom)),
+        Button.new(x: 92, y: 0, img: :btn1, font: @font1, text: 'clear', scale_x: 2, scale_y: 2, anchor: :right) do
+          @objects = Array.new(@tiles_x) {
+            Array.new(@tiles_y) {
+              Cell.new
+            }
+          }
+        end,
         Button.new(x: 48, y: 0, img: :btn1, font: @font1, text: 'LOAD', scale_x: 2, scale_y: 2, anchor: :right) do
           path = "#{@dir}/stage/#{txt_world.text}/#{txt_stage.text}-#{txt_section.text}"
           if File.exist? path
@@ -421,7 +428,12 @@ class SBEditor < GameWindow
       check_fill(mp.x, mp.y)
     elsif Mouse.button_pressed?(:left)
       if ctrl
-        @txt_args.text += (@txt_args.text.empty? ? '' : ':') + "#{mp.x},#{mp.y}"
+        case @cur_element
+        when /(obj|enemy)/
+          @txt_args.text += (@txt_args.text.empty? ? '' : ':') + "#{mp.x},#{mp.y}"
+        when :pass
+          @pass_start = [mp.x, mp.y]
+        end
       else
         case @cur_element
         when :pass
@@ -455,14 +467,16 @@ class SBEditor < GameWindow
     elsif Mouse.button_released?(:left) && @cur_element == :pass
       min_x, max_x = mp.x < @pass_start[0] ? [mp.x, @pass_start[0]] : [@pass_start[0], mp.x]
       min_y, max_y = mp.y < @pass_start[1] ? [mp.y, @pass_start[1]] : [@pass_start[1], mp.y]
-      w = max_x - min_x + 1
-      h = max_y - min_y + 1
       (min_y..max_y).each do |j|
         (min_x..max_x).each do |i|
+          cell = @objects[i][j]
+          next if ctrl && %w(b11 b43 b44 b45).include?(cell.back)
           if j == min_y
-            @objects[i][j].obj = 'p' + (i == min_x ? '40' : i == max_x ? '42' : '41')
+            next if ctrl && cell.obj && cell.obj[0] == 'w'
+            cell.obj = 'p' + (i == min_x ? '40' : i == max_x ? '42' : '41')
           else
-            @objects[i][j].back = 'b' + (i == min_x ? '43' : i == max_x ? '45' : '44')
+            cell.back = 'b' + (i == min_x ? '43' : i == max_x ? '45' : '44')
+            cell.obj = nil if cell.obj && cell.obj[0] == 'p' && !ctrl
           end
         end
       end
