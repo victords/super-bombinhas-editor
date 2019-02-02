@@ -184,6 +184,7 @@ class SBEditor < GameWindow
               Cell.new
             }
           }
+          @ramps.clear
         end,
         Button.new(x: 48, y: 0, img: :btn1, font: @font1, text: 'LOAD', scale_x: 2, scale_y: 2, anchor: :right) do
           path = "#{@dir}/stage/#{txt_world.text}/#{txt_stage.text}-#{txt_section.text}"
@@ -481,7 +482,7 @@ class SBEditor < GameWindow
         end
       end
       @pass_start = nil
-    elsif Mouse.button_pressed?(:right) || ctrl && Mouse.button_down?(:right)
+    elsif ctrl && Mouse.button_pressed?(:right) || !ctrl && Mouse.button_down?(:right)
       @ramps.each do |ramp|
         coords = ramp.split(':')[1].split(',')
         x = coords[0].to_i; y = coords[1].to_i
@@ -490,19 +491,20 @@ class SBEditor < GameWindow
         pos = @map.get_screen_pos(x, y)
         @ramps.delete(ramp) if Mouse.over?(pos.x, pos.y, w, h)
       end
+      obj = @objects[mp.x][mp.y].obj
       if @objects[mp.x][mp.y].hide
         @objects[mp.x][mp.y].hide = nil
       elsif @objects[mp.x][mp.y].fore
         @objects[mp.x][mp.y].fore = nil
-      elsif @objects[mp.x][mp.y].obj
-        wall = @objects[mp.x][mp.y].obj[0] == 'w'
+      elsif obj
         @objects[mp.x][mp.y].obj = nil
-        if wall
+        if obj[0] == 'w' && obj[1..2].to_i < 50
           set_surrounding_wall_tiles(mp.x, mp.y)
         end
       else
+        b = @objects[mp.x][mp.y].back
         @objects[mp.x][mp.y].back = nil
-        set_surrounding_wall_tiles(mp.x, mp.y)
+        set_surrounding_wall_tiles(mp.x, mp.y) if b && b[1..2].to_i < 50
       end
     end
   end
@@ -528,13 +530,13 @@ class SBEditor < GameWindow
 
   def set_wall_tile(i, j, must_set = false)
     return if i < 0 || j < 0 || i >= @map.size.x || j >= @map.size.y
-    return unless must_set || @objects[i][j].obj && @objects[i][j].obj[0] == 'w' || @objects[i][j].back == 'b11'
-    up = j == 0 || @objects[i][j - 1].obj && @objects[i][j - 1].obj[0] == 'w' || wall_ish_tile?(i, j - 1)
-    rt = i == @map.size.x - 1 || @objects[i + 1][j].obj && @objects[i + 1][j].obj[0] == 'w' || wall_ish_tile?(i + 1, j)
-    dn = j == @map.size.y - 1 || @objects[i][j + 1].obj && @objects[i][j + 1].obj[0] == 'w' || wall_ish_tile?(i, j + 1)
-    lf = i == 0 || @objects[i - 1][j].obj && @objects[i - 1][j].obj[0] == 'w' || wall_ish_tile?(i - 1, j)
-    tl = !up && i > 0 && j > 0 && (@objects[i - 1][j - 1].obj && @objects[i - 1][j - 1].obj[0] == 'w' || wall_ish_tile?(i - 1, j) || wall_ish_tile?(i - 1, j - 1))
-    tr = !up && i < @map.size.x - 1 && j > 0 && (@objects[i + 1][j - 1].obj && @objects[i + 1][j - 1].obj[0] == 'w' || wall_ish_tile?(i + 1, j) || wall_ish_tile?(i + 1, j - 1))
+    return unless must_set || @objects[i][j].obj && @objects[i][j].obj[0] == 'w' && @objects[i][j].obj[1..2].to_i < 50 || @objects[i][j].back == 'b11'
+    up = j == 0 || wall_ish_tile?(i, j - 1)
+    rt = i == @map.size.x - 1 || wall_ish_tile?(i + 1, j)
+    dn = j == @map.size.y - 1 || wall_ish_tile?(i, j + 1)
+    lf = i == 0 || wall_ish_tile?(i - 1, j)
+    tl = !up && i > 0 && j > 0 && (wall_ish_tile?(i - 1, j - 1) || wall_ish_tile?(i - 1, j, true))
+    tr = !up && i < @map.size.x - 1 && j > 0 && (wall_ish_tile?(i + 1, j - 1) || wall_ish_tile?(i + 1, j, true))
     tile =
       if up && rt && dn && lf; 'b11'
       elsif up && rt && dn; 'w10'
@@ -575,8 +577,8 @@ class SBEditor < GameWindow
     set_wall_tile(i + 1, j + 1)
   end
 
-  def wall_ish_tile?(i, j)
-    @objects[i][j].back && @wall_ish_tiles.include?(@objects[i][j].back[1..-1].to_i)
+  def wall_ish_tile?(i, j, back_only = false)
+    !back_only && @objects[i][j].obj && @objects[i][j].obj[0] == 'w' && @objects[i][j].obj[1..2].to_i < 50 || @objects[i][j].back && @wall_ish_tiles.include?(@objects[i][j].back[1..-1].to_i)
   end
 
   def reset_map(tiles_x, tiles_y)
@@ -622,10 +624,7 @@ class SBEditor < GameWindow
   end
 
   def cell_empty?(i, j, hide)
-    (hide || @objects[i][j].back.nil?) &&
-             @objects[i][j].fore.nil? &&
-             @objects[i][j].obj.nil? &&
-             @objects[i][j].hide.nil?
+    hide && @objects[i][j].hide.nil? || !hide && @objects[i][j].back.nil? && @objects[i][j].fore.nil? && @objects[i][j].obj.nil?
   end
 
   def get_cell_string(i, j)
