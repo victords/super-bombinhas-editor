@@ -109,6 +109,7 @@ class SBEditor < GameWindow
     el_files.each do |f|
       name = f.split('/')[-1].chomp('.png')
       img = Res.img("el_#{name}")
+      @crack_index = @elements.size if name == 'Crack'
       @elements << img
       (name.end_with?('!') ? @enemies : @objs) << img
     end
@@ -529,6 +530,7 @@ class SBEditor < GameWindow
   end
 
   def set_wall_tile(i, j, must_set = false)
+    @crack = false
     return if i < 0 || j < 0 || i >= @map.size.x || j >= @map.size.y
     return unless must_set || @objects[i][j].obj && @objects[i][j].obj[0] == 'w' && @objects[i][j].obj[1..2].to_i < 50 || @objects[i][j].back == 'b11'
     up = j == 0 || wall_ish_tile?(i, j - 1)
@@ -538,7 +540,7 @@ class SBEditor < GameWindow
     tl = !up && i > 0 && j > 0 && (wall_ish_tile?(i - 1, j - 1) || wall_ish_tile?(i - 1, j, true))
     tr = !up && i < @map.size.x - 1 && j > 0 && (wall_ish_tile?(i + 1, j - 1) || wall_ish_tile?(i + 1, j, true))
     tile =
-      if up && rt && dn && lf; 'b11'
+      if up && rt && dn && lf; @crack ? 'w11' : 'b11'
       elsif up && rt && dn; 'w10'
       elsif up && rt && lf; 'w21'
       elsif up && dn && lf; 'w12'
@@ -578,7 +580,9 @@ class SBEditor < GameWindow
   end
 
   def wall_ish_tile?(i, j, back_only = false)
-    !back_only && @objects[i][j].obj && @objects[i][j].obj[0] == 'w' && @objects[i][j].obj[1..2].to_i < 50 || @objects[i][j].back && @wall_ish_tiles.include?(@objects[i][j].back[1..-1].to_i)
+    !back_only && @objects[i][j].obj &&
+        (@objects[i][j].obj[0] == 'w' && @objects[i][j].obj[1..2].to_i < 50 || @objects[i][j].obj[1..2].to_i == @crack_index && (@crack = true)) ||
+        @objects[i][j].back && @wall_ish_tiles.include?(@objects[i][j].back[1..-1].to_i)
   end
 
   def reset_map(tiles_x, tiles_y)
