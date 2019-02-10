@@ -10,20 +10,26 @@ class FloatingPanel
   attr_accessor :visible
 
   def initialize(element_type, x, y, w, h, children, editor)
+    @element_type = element_type
     @x = x
     @y = y
     @w = w
     @h = h
+    @visible = false
+    @editor = editor
+    set_children(children)
+  end
+
+  def set_children(children)
     @children = children
     @buttons = children.map.with_index do |c, i|
       Button.new(x: @x + c[:x], y: @y + c[:y], width: c[:img].width * 2, height: c[:img].height * 2, params: i) do |p|
-        editor.cur_element = element_type
-        editor.cur_index = p
-        editor.txt_args.text = ''
-		@visible = false
+        @editor.cur_element = @element_type
+        @editor.cur_index = p
+        @editor.txt_args.text = ''
+        @visible = false
       end
     end
-    @visible = false
   end
 
   def update
@@ -56,8 +62,8 @@ class SBEditor < GameWindow
   attr_writer :cur_element, :cur_index
 
   def initialize
-    @scr_w, @scr_h = 1920, 1080 # `xrandr`.scan(/current (\d+) x (\d+)/).flatten.map(&:to_i)
-    super @scr_w, @scr_h, true
+    @scr_w, @scr_h = 1366, 768 # `xrandr`.scan(/current (\d+) x (\d+)/).flatten.map(&:to_i)
+    super @scr_w, @scr_h, false
     Res.retro_images = true
 
     @tiles_x = @tiles_y = 300
@@ -150,6 +156,7 @@ class SBEditor < GameWindow
       Panel.new(0, 0, 48, 300, [
         (ddl_ts = DropDownList.new(x: 0, y: 4, font: @font2, img: :ddl, opt_img: :ddlOpt, options: ts_options, text_margin: 4, scale_x: 2, scale_y: 2, anchor: :top) do |_, v|
           @cur_tileset = ts_options.index(v)
+          @floating_panels[0].set_children(@tilesets[@cur_tileset][50..-1].map.with_index{ |t, i| { img: t, x: 4 + (i % 10) * 33, y: 4 + (i / 10) * 33 } })
         end),
         Button.new(x: 0, y: 38, img: :btn1, font: @font1, text: 'WALL', scale_x: 2, scale_y: 2, anchor: :top) do
           @cur_element = :wall
@@ -359,6 +366,8 @@ class SBEditor < GameWindow
               @objects[i][j] = Cell.new
             end
           end
+
+          @ramps.map! { |r| p = r.split(':'); q = p[1].split(','); "#{p[0]}:#{q[0].to_i + o_x},#{q[1].to_i + o_y}" }
         end
       ], :pnl, :tiled, true, 2, 2, :center)
       ###########################################################################
@@ -614,21 +623,25 @@ class SBEditor < GameWindow
   end
 
   def check_fill(i, j)
-    return if @cur_element != :wall && @cur_element != :hide
+    return unless @cur_element == :wall || @cur_element == :hide || @cur_element == :tile && @ddl_tile_type.value == 'b'
     if @cur_element == :wall
       @objects[i][j].back = 'b11'
       set_surrounding_wall_tiles(i, j)
-    else
+    elsif @cur_element == :hide
       @objects[i][j].hide = 'h00'
+    else
+      @objects[i][j].back = "b#{50 + @cur_index}"
     end
-    check_fill i - 1, j if i > 0 and cell_empty?(i - 1, j, @cur_element == :hide)
-    check_fill i + 1, j if i < @tiles_x - 1 and cell_empty?(i + 1, j, @cur_element == :hide)
-    check_fill i, j - 1 if j > 0 and cell_empty?(i, j - 1, @cur_element == :hide)
-    check_fill i, j + 1 if j < @tiles_y - 1 and cell_empty?(i, j + 1, @cur_element == :hide)
+    check_fill i - 1, j if i > 0 and cell_empty?(i - 1, j)
+    check_fill i + 1, j if i < @tiles_x - 1 and cell_empty?(i + 1, j)
+    check_fill i, j - 1 if j > 0 and cell_empty?(i, j - 1)
+    check_fill i, j + 1 if j < @tiles_y - 1 and cell_empty?(i, j + 1)
   end
 
-  def cell_empty?(i, j, hide)
-    hide && @objects[i][j].hide.nil? || !hide && @objects[i][j].back.nil? && @objects[i][j].fore.nil? && @objects[i][j].obj.nil?
+  def cell_empty?(i, j)
+    @cur_element == :wall && @objects[i][j].back.nil? && @objects[i][j].fore.nil? && @objects[i][j].obj.nil? ||
+      @cur_element == :hide && @objects[i][j].hide.nil? ||
+      @cur_element == :tile && @objects[i][j].back.nil? && (@objects[i][j].obj.nil? || @objects[i][j].obj[0] != 'w')
   end
 
   def get_cell_string(i, j)
