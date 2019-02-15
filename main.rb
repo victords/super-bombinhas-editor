@@ -219,8 +219,7 @@ class SBEditor < GameWindow
             ddl_bgm.value = infos[4]
             @cur_bgm = bgm_options.index(ddl_bgm.value)
 
-            @dark = infos.length > 5
-            chk_dark.checked = @dark
+            chk_dark.checked = infos.length > 5
 
             i = 0; j = 0
             elms.each do |e|
@@ -276,7 +275,7 @@ class SBEditor < GameWindow
                         true
                       end
           if will_save
-            code = "#{@tiles_x},#{@tiles_y},#{@cur_exit},#{ddl_ts.value},#{ddl_bgm.value}#{@dark ? ',.' : ''}##{ddl_bg.value}#"
+            code = "#{@tiles_x},#{@tiles_y},#{@cur_exit},#{ddl_ts.value},#{ddl_bgm.value}#{chk_dark.checked ? ',.' : ''}##{ddl_bg.value}#"
 
             count = 1
             last_element = get_cell_string(0, 0)
@@ -357,8 +356,12 @@ class SBEditor < GameWindow
         Button.new(x: 4, y: 7, img: :btn1, font: @font2, text: 'OK', scale_x: 2, scale_y: 2, anchor: :right) do
           o_x = @txt_offset_x.text.to_i
           o_y = @txt_offset_y.text.to_i
-          x_range = o_x > 0 ? (@tiles_x - 1).downto(0) : 0.upto(@tiles_x - 1)
-          y_range = o_y > 0 ? (@tiles_y - 1).downto(0) : 0.upto(@tiles_y - 1)
+          start_x = @selection ? @selection[0] : 0
+          start_y = @selection ? @selection[1] : 0
+          end_x = @selection ? @selection[2] : @tiles_x - 1
+          end_y = @selection ? @selection[3] : @tiles_y - 1
+          x_range = o_x > 0 ? end_x.downto(start_x) : start_x.upto(end_x)
+          y_range = o_y > 0 ? end_y.downto(start_y) : start_y.upto(end_y)
           x_range.each do |i|
             y_range.each do |j|
               ii = i + o_x; jj = j + o_y
@@ -367,7 +370,7 @@ class SBEditor < GameWindow
             end
           end
 
-          @ramps.map! { |r| p = r.split(':'); q = p[1].split(','); "#{p[0]}:#{q[0].to_i + o_x},#{q[1].to_i + o_y}" }
+          @ramps.map! { |r| p = r.split(':'); x, y = p[1].split(',').map(&:to_i); x >= start_x && x <= end_x && y >= start_y && y <= end_y ? "#{p[0]}:#{x + o_x},#{y + o_y}" : r }
         end
       ], :pnl, :tiled, true, 2, 2, :center)
       ###########################################################################
@@ -433,6 +436,7 @@ class SBEditor < GameWindow
     return if @over_panel.any?
 
     ctrl = KB.key_down?(Gosu::KbLeftControl) || KB.key_down?(Gosu::KbRightControl)
+    alt = KB.key_down?(Gosu::KbLeftAlt) || KB.key_down?(Gosu::KbRightAlt)
     mp = @map.get_map_pos(Mouse.x, Mouse.y)
     return if mp.x >= @tiles_x || mp.y >= @tiles_y
     if Mouse.double_click?(:left)
@@ -445,7 +449,10 @@ class SBEditor < GameWindow
         when :pass
           @pass_start = [mp.x, mp.y]
         end
+      elsif alt
+        @selection = [mp.x, mp.y]
       else
+        @selection = nil
         case @cur_element
         when :pass
           @pass_start = [mp.x, mp.y]
@@ -459,7 +466,7 @@ class SBEditor < GameWindow
           @objects[mp.x][mp.y].obj = '!' + @txt_args.text + (@chk_default.checked ? '!' : '')
         end
       end
-    elsif !ctrl && Mouse.button_down?(:left)
+    elsif !ctrl && !alt && Mouse.button_down?(:left)
       case @cur_element
       when :wall
         set_wall_tile(mp.x, mp.y, true)
@@ -475,23 +482,30 @@ class SBEditor < GameWindow
       when :enemy
         @objects[mp.x][mp.y].obj = '@' + '%02d' % (@elements.index(@enemies[@cur_index])) + (@txt_args.text.empty? ? '' : ":#{@txt_args.text}")
       end
-    elsif Mouse.button_released?(:left) && @cur_element == :pass
-      min_x, max_x = mp.x < @pass_start[0] ? [mp.x, @pass_start[0]] : [@pass_start[0], mp.x]
-      min_y, max_y = mp.y < @pass_start[1] ? [mp.y, @pass_start[1]] : [@pass_start[1], mp.y]
-      (min_y..max_y).each do |j|
-        (min_x..max_x).each do |i|
-          cell = @objects[i][j]
-          next if ctrl && %w(b11 b43 b44 b45).include?(cell.back)
-          if j == min_y
-            next if ctrl && cell.obj && cell.obj[0] == 'w'
-            cell.obj = 'p' + (i == min_x ? '40' : i == max_x ? '42' : '41')
-          else
-            cell.back = 'b' + (i == min_x ? '43' : i == max_x ? '45' : '44')
-            cell.obj = nil if cell.obj && cell.obj[0] == 'p' && !ctrl
+    elsif Mouse.button_released?(:left)
+      if alt
+        @selection << mp.x << mp.y
+      else
+        @selection = nil
+        if @cur_element == :pass
+          min_x, max_x = mp.x < @pass_start[0] ? [mp.x, @pass_start[0]] : [@pass_start[0], mp.x]
+          min_y, max_y = mp.y < @pass_start[1] ? [mp.y, @pass_start[1]] : [@pass_start[1], mp.y]
+          (min_y..max_y).each do |j|
+            (min_x..max_x).each do |i|
+              cell = @objects[i][j]
+              next if ctrl && %w(b11 b43 b44 b45).include?(cell.back)
+              if j == min_y
+                next if ctrl && cell.obj && cell.obj[0] == 'w'
+                cell.obj = 'p' + (i == min_x ? '40' : i == max_x ? '42' : '41')
+              else
+                cell.back = 'b' + (i == min_x ? '43' : i == max_x ? '45' : '44')
+                cell.obj = nil if cell.obj && cell.obj[0] == 'p' && !ctrl
+              end
+            end
           end
+          @pass_start = nil
         end
       end
-      @pass_start = nil
     elsif ctrl && Mouse.button_pressed?(:right) || !ctrl && Mouse.button_down?(:right)
       @ramps.each do |ramp|
         coords = ramp.split(':')[1].split(',')
@@ -681,6 +695,19 @@ class SBEditor < GameWindow
       a = r[1] == "'" ? 2 : 1
       w = r[a].to_i * 32; h = r[a + 1].to_i * 32
       draw_ramp pos.x, pos.y, w, h, r[0] == 'l', a == 2
+    end
+
+    if @selection && @selection.size == 4
+      (@selection[0]..@selection[2]).each do |x|
+        xx = x * 32 - @map.cam.x
+        (@selection[1]..@selection[3]).each do |y|
+          yy = y * 32 - @map.cam.y
+          draw_quad xx, yy, SELECTION_COLOR,
+                    xx + 32, yy, SELECTION_COLOR,
+                    xx, yy + 32, SELECTION_COLOR,
+                    xx + 32, yy + 32, SELECTION_COLOR, 2
+        end
+      end
     end
 
     @panels.each_with_index do |p, i|
