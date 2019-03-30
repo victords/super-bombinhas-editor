@@ -167,13 +167,13 @@ class SBEditor < GameWindow
         Button.new(x: 0, y: 38 + 88, img: :btn1, font: @font1, text: 'HIDE', scale_x: 2, scale_y: 2, anchor: :top) do
           @cur_element = :hide
         end,
-        (other_tile_btn = Button.new(x: 0, y: 38 + 132, img: :btn1, font: @font1, text: 'OTHER', scale_x: 2, scale_y: 2, anchor: :top) do
-          @floating_panels[0].visible = !@floating_panels[0].visible
+        (ramp_btn = Button.new(x: 0, y: 38 + 132, img: :btn1, font: @font1, text: 'RAMP', scale_x: 2, scale_y: 2, anchor: :top) do
+          toggle_floating_panel(1)
         end),
-        (@ddl_tile_type = DropDownList.new(x: 0, y: 38 + 176, font: @font2, img: :ddl, opt_img: :ddlOpt, options: %w(w p b f), text_margin: 4, scale_x: 2, scale_y: 2, anchor: :top)),
-        (ramp_btn = Button.new(x: 0, y: 38 + 216, img: :btn1, font: @font1, text: 'RAMP', scale_x: 2, scale_y: 2, anchor: :top) do
-          @floating_panels[1].visible = !@floating_panels[1].visible
+        (other_tile_btn = Button.new(x: 0, y: 38, img: :btn1, font: @font1, text: 'OTHER', scale_x: 2, scale_y: 2, anchor: :bottom) do
+          toggle_floating_panel(0)
         end),
+        (@ddl_tile_type = DropDownList.new(x: 0, y: 4, font: @font2, img: :ddl, opt_img: :ddlOpt, options: %w(w p b f), text_margin: 4, scale_x: 2, scale_y: 2, anchor: :bottom)),
       ], :pnl, :tiled, true, 2, 2, :left),
       ###########################################################################
 
@@ -325,10 +325,10 @@ class SBEditor < GameWindow
         Label.new(x: 0, y: 48, font: @font1, text: 'Default', scale_x: 2, scale_y: 2, anchor: :top),
         (@chk_default = ToggleButton.new(x: 0, y: 60, img: :chk, checked: true, scale_x: 2, scale_y: 2, anchor: :top)),
         (btn_obj = Button.new(x: 0, y: 100, img: :btn1, font: @font1, text: 'OBJ.', scale_x: 2, scale_y: 2, anchor: :top) do
-          @floating_panels[2].visible = !@floating_panels[2].visible
+          toggle_floating_panel(2)
         end),
         (btn_enemy = Button.new(x: 0, y: 144, img: :btn1, font: @font1, text: 'ENEMY', scale_x: 2, scale_y: 2, anchor: :top) do
-          @floating_panels[3].visible = !@floating_panels[3].visible
+          toggle_floating_panel(3)
         end),
         Button.new(x: 0, y: 188, img: :btn1, font: @font1, text: 'ARGS...', scale_x: 2, scale_y: 2, anchor: :top) do
           toggle_args_panel
@@ -371,6 +371,13 @@ class SBEditor < GameWindow
           end
 
           @ramps.map! { |r| p = r.split(':'); x, y = p[1].split(',').map(&:to_i); x >= start_x && x <= end_x && y >= start_y && y <= end_y ? "#{p[0]}:#{x + o_x},#{y + o_y}" : r }
+
+          if @selection
+            @selection[0] += o_x
+            @selection[1] += o_y
+            @selection[2] += o_x
+            @selection[3] += o_y
+          end
         end
       ], :pnl, :tiled, true, 2, 2, :center)
       ###########################################################################
@@ -530,6 +537,12 @@ class SBEditor < GameWindow
         @objects[mp.x][mp.y].back = nil
         set_surrounding_wall_tiles(mp.x, mp.y) if b && b[1..2].to_i < 50
       end
+    end
+  end
+
+  def toggle_floating_panel(index)
+    @floating_panels.each_with_index do |p, i|
+      p.visible = i == index ? !p.visible : false
     end
   end
 
@@ -711,7 +724,7 @@ class SBEditor < GameWindow
     end
 
     @panels.each_with_index do |p, i|
-      p.draw(@over_panel[i] ? 255 : 153)
+      p.draw(@over_panel[i] ? 255 : 153, 2)
     end
 
     @floating_panels.each(&:draw)
