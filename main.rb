@@ -60,6 +60,9 @@ class FloatingPanel
                        @x + @w, @y + @h, COLOR, 1)
     @children.each do |c|
       c[:img].draw(@x + c[:x], @y + c[:y], 1, 2, 2)
+      if c[:name] && Mouse.over?(@x + c[:x], @y + c[:y], 32, 32)
+        @editor.text_helper.write_line(c[:name], @x + c[:x], @y + c[:y] - 12, :right, 0xffffff, 255, :border, 0, 2, 255, 2)
+      end
     end
   end
 end
@@ -73,7 +76,7 @@ class SBEditor < GameWindow
   BLACK = 0xff000000
   WHITE = 0xffffffff
 
-  attr_reader :txt_args
+  attr_reader :txt_args, :text_helper
   attr_writer :cur_element, :cur_index
 
   def initialize
@@ -93,6 +96,7 @@ class SBEditor < GameWindow
     @dir = '../super-bombinhas/data'
     @font1 = Res.font :minecraftia, 6
     @font2 = Res.font :minecraftia, 10
+    @text_helper = TextHelper.new(Res.font(:minecraftia, 24), 0)
     @cur_index = -1
 
     bg_files = Dir["#{Res.prefix}#{Res.img_dir}bg/*"].sort
@@ -126,13 +130,21 @@ class SBEditor < GameWindow
     el_files = Dir["#{Res.prefix}#{Res.img_dir}el/*"].sort
     @elements = [nil]
     @enemies = []
+    enemy_names = []
     @objs = []
+    obj_names = []
     el_files.each do |f|
       name = f.split('/')[-1].chomp('.png')
       img = Res.img("el_#{name}")
       @crack_index = @elements.size if name == 'Crack'
       @elements << img
-      (name.end_with?('!') ? @enemies : @objs) << img
+      if name.end_with?('!')
+        @enemies << img
+        enemy_names << name.chomp('!')
+      else
+        @objs << img
+        obj_names << name
+      end
     end
 
     @bomb = Res.img(:Bomb)
@@ -404,8 +416,8 @@ class SBEditor < GameWindow
     @floating_panels = [
       FloatingPanel.new(:tile, other_tile_btn.x + 40, other_tile_btn.y, 337, 172, @tilesets[@cur_tileset][50..-1].map.with_index{ |t, i| { img: t, x: 4 + (i % 10) * 33, y: 4 + (i / 10) * 33 } }, self),
       FloatingPanel.new(:ramp, ramp_btn.x + 40, ramp_btn.y, 271, 40, (0..7).map { |i| { img: Res.img("ramp#{i}"), x: 4 + i * 33, y: 4 } }, self),
-      FloatingPanel.new(:obj, btn_obj.x - 337, btn_obj.y, 337, 300, @objs.map.with_index{ |o, i| { img: o, x: 4 + (i % 10) * 33, y: 4 + (i / 10) * 33 } }, self),
-      FloatingPanel.new(:enemy, btn_enemy.x - 337, btn_enemy.y, 337, 300, @enemies.map.with_index{ |o, i| { img: o, x: 4 + (i % 10) * 33, y: 4 + (i / 10) * 33 } }, self),
+      FloatingPanel.new(:obj, btn_obj.x - 337, btn_obj.y, 337, 300, @objs.map.with_index{ |o, i| { img: o, x: 4 + (i % 10) * 33, y: 4 + (i / 10) * 33, name: obj_names[i] } }, self),
+      FloatingPanel.new(:enemy, btn_enemy.x - 337, btn_enemy.y, 337, 300, @enemies.map.with_index{ |o, i| { img: o, x: 4 + (i % 10) * 33, y: 4 + (i / 10) * 33, name: enemy_names[i] } }, self),
     ]
 
     @dropdowns = [ddl_bg, ddl_bgm, ddl_exit, ddl_ts, @ddl_tile_type]
