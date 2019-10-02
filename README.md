@@ -106,6 +106,12 @@ The elements and enemies that show up in the editor are defined by the images pl
 in the data/img/el folder. Enemies are separated from the others by having a "!"
 at the end of the file name (before the extension).
 
+### Erasing
+
+Use the right mouse button to erase. By default, it will erase everything in the
+current tile and keep erasing as you move, but you can hold Ctrl to erase one
+element at a time (each click will erase a single element).
+
 ### The offset functionality
 
 You can move everything in the stage or a selection by a number of tiles, both
@@ -128,3 +134,9 @@ validations regarding the arguments of the elements, for example;
 moreover, the interactions between every combination of elements haven't been tested,
 so it is very likely that you find combinations that generate strange behaviors or
 even cause the game to crash.
+
+## Contributing
+
+Feel free to fork the project and send pull requests if you want to contribute with
+the code. Also, you can support my work by donating bitcoins to this wallet:
+bc1qvypzxnvtp2wzx8l5ecm0u6e7wshjxznzh0440c
