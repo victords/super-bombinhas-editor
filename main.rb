@@ -684,7 +684,7 @@ class SBEditor < GameWindow
     elsif @cur_element == :hide
       @objects[i][j].hide = 'h00'
     else
-      @objects[i][j].back = "b#{50 + @cur_index}"
+      @objects[i][j].back = "b#{@cur_index}"
     end
     check_fill i - 1, j if i > 0 and cell_empty?(i - 1, j)
     check_fill i + 1, j if i < @tiles_x - 1 and cell_empty?(i + 1, j)
