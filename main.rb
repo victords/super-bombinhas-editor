@@ -183,7 +183,7 @@ class SBEditor < GameWindow
       Panel.new(0, 0, 48, 300, [
         (ddl_ts = DropDownList.new(x: 0, y: 4, font: @font2, img: :ddl, opt_img: :ddlOpt, options: ts_options, text_margin: 4, scale_x: 2, scale_y: 2, anchor: :top) do |_, v|
           @cur_tileset = ts_options.index(v)
-          @floating_panels[0].set_children(@tilesets[@cur_tileset][50..-1].map.with_index{ |t, i| { img: t, x: 4 + (i % 10) * 33, y: 4 + (i / 10) * 33 } })
+          @floating_panels[0].set_children(@tilesets[@cur_tileset].map.with_index{ |t, i| { img: t, x: 4 + (i % 10) * 33, y: 4 + (i / 10) * 33 } })
         end),
         Button.new(x: 0, y: 38, img: :btn1, font: @font1, text: 'WALL', scale_x: 2, scale_y: 2, anchor: :top) do
           @cur_element = :wall
@@ -414,7 +414,7 @@ class SBEditor < GameWindow
     @panels[4].visible = @panels[5].visible = lbl_conf_save.visible = false
 
     @floating_panels = [
-      FloatingPanel.new(:tile, other_tile_btn.x + 40, other_tile_btn.y, 337, 172, @tilesets[@cur_tileset][50..-1].map.with_index{ |t, i| { img: t, x: 4 + (i % 10) * 33, y: 4 + (i / 10) * 33 } }, self),
+      FloatingPanel.new(:tile, other_tile_btn.x + 40, other_tile_btn.y - 148, 337, 337, @tilesets[@cur_tileset].map.with_index{ |t, i| { img: t, x: 4 + (i % 10) * 33, y: 4 + (i / 10) * 33 } }, self),
       FloatingPanel.new(:ramp, ramp_btn.x + 40, ramp_btn.y, 271, 40, (0..7).map { |i| { img: Res.img("ramp#{i}"), x: 4 + i * 33, y: 4 } }, self),
       FloatingPanel.new(:obj, btn_obj.x - 337, btn_obj.y, 337, 300, @objs.map.with_index{ |o, i| { img: o, x: 4 + (i % 10) * 33, y: 4 + (i / 10) * 33, name: obj_names[i] } }, self),
       FloatingPanel.new(:enemy, btn_enemy.x - 337, btn_enemy.y, 337, 300, @enemies.map.with_index{ |o, i| { img: o, x: 4 + (i % 10) * 33, y: 4 + (i / 10) * 33, name: enemy_names[i] } }, self),
@@ -510,7 +510,7 @@ class SBEditor < GameWindow
       when :tile
         t = @ddl_tile_type.value
         prop = t == 'w' || t == 'p' ? :obj= : t == 'b' ? :back= : :fore=
-        @objects[mp.x][mp.y].send(prop, t + '%02d' % (50 + @cur_index))
+        @objects[mp.x][mp.y].send(prop, t + '%02d' % @cur_index)
       when :obj
         @objects[mp.x][mp.y].obj = '@' + '%02d' % (@elements.index(@objs[@cur_index])) + (@txt_args.text.empty? ? '' : ":#{@txt_args.text}")
       when :enemy
