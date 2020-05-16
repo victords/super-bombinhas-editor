@@ -93,19 +93,21 @@ class SBEditor < GameWindow
     }
 
     @ramps = []
-    @dir = '../super-bombinhas/data'
+    @dir = File.expand_path(__FILE__).split('/')[0..-3].join('/') + '/super-bombinhas/data'
     @font1 = Res.font :minecraftia, 6
     @font2 = Res.font :minecraftia, 10
     @text_helper = TextHelper.new(Res.font(:minecraftia, 24), 0)
     @cur_index = -1
 
-    bg_files = Dir["#{Res.prefix}#{Res.img_dir}bg/*"].sort
+    bg_files = Dir["#{@dir}/img/bg/*"].sort
     @bgs = []
     bg_options = []
     bg_files.each do |f|
       num = f.split('/')[-1].chomp('.png')
-      @bgs << Res.img("bg_#{num}")
-      bg_options << num
+      if /^\d+$/ =~ num
+        @bgs << Gosu::Image.new(f, tileable: true, retro: true)
+        bg_options << num
+      end
     end
     @cur_bg = 0
 
@@ -115,12 +117,12 @@ class SBEditor < GameWindow
 
     exit_options = %w(/\\ > \\/ < -)
 
-    ts_files = Dir["#{Res.prefix}#{Res.tileset_dir}*.png"].sort
+    ts_files = Dir["#{@dir}/tileset/*.png"].sort
     @tilesets = []
     ts_options = []
     ts_files.each do |f|
       num = f.split('/')[-1].chomp('.png')
-      @tilesets << Res.tileset(num, 16, 16)
+      @tilesets << Gosu::Image.load_tiles(f, 16, 16, tileable: true, retro: true)
       ts_options << num
     end
     @cur_tileset = 0
@@ -709,6 +711,17 @@ class SBEditor < GameWindow
 
   def draw
     clear 0xddddff
+
+    bg = @bgs[@cur_bg]
+    bgx = 0
+    while bgx < @scr_w
+      bgy = 0
+      while bgy < @scr_h
+        bg.draw(bgx, bgy, 0, 2, 2)
+        bgy += 2 * bg.height
+      end
+      bgx += 2 * bg.width
+    end
 
     @map.foreach do |i, j, x, y|
       draw_quad x + 1, y + 1, NULL_COLOR,
