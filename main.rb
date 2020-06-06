@@ -68,7 +68,7 @@ class FloatingPanel
 end
 
 class SBEditor < GameWindow
-  NULL_COLOR = 0x11000000
+  NULL_COLOR = 0x66ffffff
   HIDE_COLOR = 0x33000099
   RAMP_COLOR = 0x66000000
   RAMP_UP_COLOR = 0x66990099
@@ -710,7 +710,7 @@ class SBEditor < GameWindow
   end
 
   def draw
-    clear 0xddddff
+    clear 0x666666
 
     bg = @bgs[@cur_bg]
     bgx = 0
