@@ -445,9 +445,10 @@ class SBEditor < GameWindow
   def update
     KB.update
     Mouse.update
-    close if KB.key_pressed? Gosu::KbEscape
+    close if KB.key_pressed?(Gosu::KbEscape)
     toggle_args_panel if KB.key_pressed?(Gosu::KbReturn)
     toggle_offset_panel if KB.key_pressed?(Gosu::KbTab)
+    @show_codes = !@show_codes if KB.key_pressed?(Gosu::KB_PERIOD)
 
     @over_panel = [false, false, false, false, false]
     @dropdowns.each_with_index do |d, i|
@@ -730,12 +731,12 @@ class SBEditor < GameWindow
                 x + 31, y + 31, NULL_COLOR, 0
       if @objects[i][j].back
         @tilesets[@cur_tileset][@objects[i][j].back[1..2].to_i].draw x, y, 0, 2, 2
-        @font1.draw 'b', x + 20, y + 18, 1, 2, 2, BLACK
+        @font1.draw 'b', x + 20, y + 18, 1, 2, 2, BLACK if @show_codes
       end
       draw_object i, j, x, y
       if @objects[i][j].fore
         @tilesets[@cur_tileset][@objects[i][j].fore[1..2].to_i].draw x, y, 0, 2, 2
-        @font1.draw 'f', x + 20, y + 8, 1, 2, 2, BLACK
+        @font1.draw 'f', x + 20, y + 8, 1, 2, 2, BLACK if @show_codes
       end
       draw_quad x, y, HIDE_COLOR,
                 x + 32, y, HIDE_COLOR,
@@ -780,14 +781,14 @@ class SBEditor < GameWindow
     if obj
       if obj[0] == 'w' || obj[0] == 'p'
         @tilesets[@cur_tileset][obj[1..2].to_i].draw x, y, 0, 2, 2
-        @font1.draw obj[0], x + 20, y - 2, 1, 2, 2, BLACK
+        @font1.draw obj[0], x + 20, y - 2, 1, 2, 2, BLACK if @show_codes
       elsif obj[0] == '!'
         @bomb.draw x, y, 0, 2, 2
-        @font1.draw obj[1..-1], x, y, 0, 2, 2, BLACK
+        @font1.draw obj[1..-1], x, y, 0, 2, 2, BLACK if @show_codes
       else
         code = obj[1..-1].split(':')
         @elements[code[0].to_i].draw x, y, 0, 2, 2
-        if code.size > 1
+        if @show_codes && code.size > 1
           code[1..-1].each_with_index do |c, i|
             @font1.draw c, x, y + i * 9, 0, 2, 2, BLACK
           end
