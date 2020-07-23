@@ -698,7 +698,7 @@ class SBEditor < GameWindow
   def cell_empty?(i, j)
     @cur_element == :wall && @objects[i][j].back.nil? && @objects[i][j].fore.nil? && @objects[i][j].obj.nil? ||
       @cur_element == :hide && @objects[i][j].hide.nil? ||
-      @cur_element == :tile && @objects[i][j].back.nil? && (@objects[i][j].obj.nil? || @objects[i][j].obj[0] != 'w')
+      @cur_element == :tile && @objects[i][j].back.nil? && (@objects[i][j].obj.nil? || @objects[i][j].obj[0] != 'w' && @objects[i][j].obj[0] != 'p')
   end
 
   def get_cell_string(i, j)
