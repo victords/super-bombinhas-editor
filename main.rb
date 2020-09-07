@@ -465,10 +465,10 @@ class SBEditor < GameWindow
     end
 
     speed = KB.key_down?(Gosu::KbLeftShift) || KB.key_down?(Gosu::KbRightShift) ? 10 : 20
-    @map.move_camera 0, -speed if KB.key_down? Gosu::KbUp
-    @map.move_camera speed, 0 if KB.key_down? Gosu::KbRight
-    @map.move_camera 0, speed if KB.key_down? Gosu::KbDown
-    @map.move_camera -speed, 0 if KB.key_down? Gosu::KbLeft
+    @map.move_camera 0, -speed if KB.key_down?(Gosu::KbUp) || KB.key_down?(Gosu::KB_W)
+    @map.move_camera speed, 0 if KB.key_down?(Gosu::KbRight) || KB.key_down?(Gosu::KB_D)
+    @map.move_camera 0, speed if KB.key_down?(Gosu::KbDown) || KB.key_down?(Gosu::KB_S)
+    @map.move_camera -speed, 0 if KB.key_down?(Gosu::KbLeft) || KB.key_down?(Gosu::KB_A)
 
     return if @over_panel.any?
 
