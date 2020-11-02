@@ -371,7 +371,7 @@ class SBEditor < GameWindow
       ################################ Argumentos ###############################
       Panel.new(0, 0, 200, 70, [
         Label.new(x: 0, y: 4, font: @font2, text: 'Arguments:', scale_x: 2, scale_y: 2, anchor: :top),
-        (@txt_args = TextField.new(x: 0, y: 30, img: :textField2, font: @font2, margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, anchor: :top))
+        (@txt_args = TextField.new(x: 0, y: 30, img: :textField2, font: @font2, margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, anchor: :top, max_length: 500))
       ], :pnl, :tiled, true, 2, 2, :center),
       ###########################################################################
 
