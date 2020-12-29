@@ -37,8 +37,8 @@ class FloatingPanel
 
   def set_children(children)
     @children = children
-    @buttons = children.map.with_index do |c, i|
-      Button.new(x: @x + c[:x], y: @y + c[:y], width: c[:img].width * 2, height: c[:img].height * 2, params: i) do |p|
+    @buttons = children.map do |c|
+      Button.new(x: @x + c[:x], y: @y + c[:y], width: c[:img].width * 2, height: c[:img].height * 2, params: c[:index]) do |p|
         @editor.cur_element = @element_type
         @editor.cur_index = p
         @editor.txt_args.text = ''
@@ -129,23 +129,24 @@ class SBEditor < GameWindow
 
     @cur_exit = 0
 
-    el_files = Dir["#{Res.prefix}#{Res.img_dir}el/*"].sort
-    @elements = [nil]
-    @enemies = []
-    enemy_names = []
-    @objs = []
-    obj_names = []
+    el_files = Dir["#{Res.prefix}#{Res.img_dir}el/*"]
+    @elements = {}
+    @enemies = {}
+    @objs = {}
+    names = {}
     el_files.each do |f|
       name = f.split('/')[-1].chomp('.png')
       img = Res.img("el_#{name}")
-      @crack_index = @elements.size if name == 'Crack'
-      @elements << img
+      index, name = name.split('-')
+      index = index.to_i
+      @crack_index = index if name == 'Crack'
+      @elements[index] = img
       if name.end_with?('!')
-        @enemies << img
-        enemy_names << name.chomp('!')
+        @enemies[index] = img
+        names[index] = name.chomp('!')
       else
-        @objs << img
-        obj_names << name
+        @objs[index] = img
+        names[index] = name
       end
     end
 
@@ -415,11 +416,19 @@ class SBEditor < GameWindow
 
     @panels[4].visible = @panels[5].visible = lbl_conf_save.visible = false
 
+    obj_items = []
+    @objs.keys.sort.each_with_index do |k, i|
+      obj_items << { img: @objs[k], x: 4 + (i % 10) * 33, y: 4 + (i / 10) * 33, name: names[k], index: k }
+    end
+    enemy_items = []
+    @enemies.keys.sort.each_with_index do |k, i|
+      enemy_items << { img: @enemies[k], x: 4 + (i % 10) * 33, y: 4 + (i / 10) * 33, name: names[k], index: k }
+    end
     @floating_panels = [
       FloatingPanel.new(:tile, other_tile_btn.x + 40, other_tile_btn.y - 148, 337, 337, @tilesets[@cur_tileset].map.with_index{ |t, i| { img: t, x: 4 + (i % 10) * 33, y: 4 + (i / 10) * 33 } }, self),
       FloatingPanel.new(:ramp, ramp_btn.x + 40, ramp_btn.y, 271, 40, (0..7).map { |i| { img: Res.img("ramp#{i}"), x: 4 + i * 33, y: 4 } }, self),
-      FloatingPanel.new(:obj, btn_obj.x - 337, btn_obj.y, 337, 300, @objs.map.with_index{ |o, i| { img: o, x: 4 + (i % 10) * 33, y: 4 + (i / 10) * 33, name: obj_names[i] } }, self),
-      FloatingPanel.new(:enemy, btn_enemy.x - 337, btn_enemy.y, 337, 300, @enemies.map.with_index{ |o, i| { img: o, x: 4 + (i % 10) * 33, y: 4 + (i / 10) * 33, name: enemy_names[i] } }, self),
+      FloatingPanel.new(:obj, btn_obj.x - 337, btn_obj.y, 337, 300, obj_items, self),
+      FloatingPanel.new(:enemy, btn_enemy.x - 337, btn_enemy.y, 337, 300, enemy_items, self),
     ]
 
     @dropdowns = [ddl_bg, ddl_bgm, ddl_exit, ddl_ts, @ddl_tile_type]
@@ -515,9 +524,9 @@ class SBEditor < GameWindow
         prop = t == 'w' || t == 'p' ? :obj= : t == 'b' ? :back= : :fore=
         @objects[mp.x][mp.y].send(prop, t + '%02d' % @cur_index)
       when :obj
-        @objects[mp.x][mp.y].obj = '@' + '%02d' % (@elements.index(@objs[@cur_index])) + (@txt_args.text.empty? ? '' : ":#{@txt_args.text}")
+        @objects[mp.x][mp.y].obj = '@' + ('%02d' % @cur_index) + (@txt_args.text.empty? ? '' : ":#{@txt_args.text}")
       when :enemy
-        @objects[mp.x][mp.y].obj = '@' + '%02d' % (@elements.index(@enemies[@cur_index])) + (@txt_args.text.empty? ? '' : ":#{@txt_args.text}")
+        @objects[mp.x][mp.y].obj = '@' + ('%02d' % @cur_index) + (@txt_args.text.empty? ? '' : ":#{@txt_args.text}")
       end
     elsif Mouse.button_released?(:left)
       if alt
