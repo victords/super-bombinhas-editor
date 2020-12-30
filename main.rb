@@ -37,8 +37,8 @@ class FloatingPanel
 
   def set_children(children)
     @children = children
-    @buttons = children.map do |c|
-      Button.new(x: @x + c[:x], y: @y + c[:y], width: c[:img].width * 2, height: c[:img].height * 2, params: c[:index]) do |p|
+    @buttons = children.map.with_index do |c, i|
+      Button.new(x: @x + c[:x], y: @y + c[:y], width: c[:img].width * 2, height: c[:img].height * 2, params: c[:index] || i) do |p|
         @editor.cur_element = @element_type
         @editor.cur_index = p
         @editor.txt_args.text = ''
