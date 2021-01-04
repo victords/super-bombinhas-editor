@@ -10,14 +10,14 @@ built with Ruby and the Gosu and MiniGL libraries.
     * For Windows: [RubyInstaller](https://rubyinstaller.org/)
     * For Linux: [RVM](https://rvm.io/)
 2. Install Gosu and MiniGL (see "Installing" [here](https://github.com/victords/minigl)).
-3. Clone this repository.
+3. Clone this and [the game's repository](https://github.com/victords/super-bombinhas) in the same directory.
 4. Open a command prompt/terminal in the repository folder and run `ruby main.rb`.
 
 ## Using the editor
 
 In order for the editor to work properly, you must have both this and the game's
 repository cloned in the same directory. The editor loads and saves files directly
-from the levels folder of the game's repository.
+from the folders of the game's repository.
 
 ### Editing stages
 
@@ -38,9 +38,7 @@ section) being edited. These are:
 * The width and height, in number of tiles. Edit the values in the fields and click
 OK to change the size.
 * The number of the background image. It will identify the background to be used
-using the pattern "&lt;game repository&gt;/data/img/bg/&lt;number&gt;.png". To make a
-background available in the editor, it must be placed in the data/img/bg directory
-of the editor as well.
+using the pattern "&lt;game repository&gt;/data/img/bg/&lt;number&gt;.png".
 * The background music identifier. It will identify the background music to be used
 using the pattern "&lt;game repository&gt;/data/song/&lt;identifier&gt;.ogg".
 * The type of exit of the section. The first 4 options, which represent arrows
@@ -49,9 +47,7 @@ edge of the level, it will be automatically transported to the default entrance 
 the next section (more on entrances later). The last option "-" indicates that touching
 the edges of the level will have no effect (except dying by trespassing the bottom edge).
 * The "dark" checkbox. If checked, this section will be in complete darkness except for
-a small area around the player. This feature is not very useful by now, because there
-are some other elements on the stage that should cast a light, but this hasn't been
-developed yet.
+a small area around the player and some other specific elements that cast light.
 
 ### Entrances
 
@@ -70,15 +66,15 @@ arguments for other elements such as doors and check points.
 
 The terrain components can be found in the left panel. They are:
 * Tileset selector: the dropdown allows the selection of the tileset to be used in this
-section. The available tilesets will be all the PNG files in the data/tileset
+section. The available tilesets will be all the PNG files in the "&lt;game repository&gt;/data/tileset"
 directory. Tilesets must be 10 x 10 tiles, 32 x 32 pixels each tile (so the overall
 image must be 320 x 320 pixels). The tiles used for walls, passable blocks and ramps
 must be in predefined positions; refer to existing tilesets to see the pattern.
 * Wall: a solid block that can't be entered by the player from any direction.
 * Pass: a "passable" block, which serves as floor, but the player can go through it
 from the sides and from below. These are placed in rectangular areas, click and hold
-on one corner and release on the opposite corner. Hold ctrl while doing this to make
-it be placed behind other blocks.
+on the top-left corner and release on the bottom-right corner. Hold ctrl while doing this
+to make it be placed behind other blocks.
 * Hide: a foreground tile that can hide any elements behind it. In the game, it will
 appear very similar to walls.
 * Ramp: opens a menu with the predefined ramp sizes (in tiles). Click on the desired
@@ -100,10 +96,13 @@ define entrance numbers (the field can be showed by pressing Enter or clicking t
 "args..." button in this same panel). To find out which arguments are supported for
 each element, you can check the constructor of the corresponding class in the
 "items.rb", "elements.rb" or "enemies.rb" file from the game's source code (the
-name of the class shows up when you hover over the element).
+name of the class shows up when you hover over the element); the "Board" element
+corresponds to the "BoardItem" class in the "items.rb" file.
 
 The elements and enemies that show up in the editor are defined by the images placed
-in the data/img/el folder. Enemies are separated from the others by having a "!"
+in the "data/img/el" folder. The file name must follow the pattern "&lt;code&gt;-&lt;name&gt;.png",
+where "code" is the key of the corresponding class in the ELEMENT_TYPES hash in the "section.rb"
+file of the game project. Enemies are separated from the others by having a "!"
 at the end of the file name (before the extension).
 
 ### Erasing
@@ -117,14 +116,14 @@ element at a time (each click will erase a single element).
 You can move everything in the stage or a selection by a number of tiles, both
 horizontally and vertically, using the offset functionality. You can open the panel
 by pressing Tab on the keyboard or clicking the "offset" button in the right panel.
-To make a selection, hold Alt and click and drag from one corner to the opposite one
-of the area you want to select.
+To make a selection, hold Alt and click and drag from the top-left to the bottom-right
+corner of the area you want to select.
 
 ## Remarks
 
 * The source code is distributed under the GNU GPLv3 license and the image assets
-(contents of the folders data/img and data/tileset) under the Creative Commons
-Attribution-ShareAlike 4.0 license.
+(contents of the folder "data/img") under the Creative Commons Attribution-ShareAlike
+4.0 license.
 * This is a summary of how to use and extend the editor, but if you need more details
 you can always reach out to
 [victordavidsantos@gmail.com](mailto:victordavidsantos@gmail.com).
