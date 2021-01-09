@@ -151,6 +151,7 @@ class SBEditor < GameWindow
     end
 
     @bomb = Res.img(:Bomb)
+    @fog = Res.img(:fog)
 
     save_confirm = false
 
@@ -512,21 +513,25 @@ class SBEditor < GameWindow
           @objects[mp.x][mp.y].obj = '!' + @txt_args.text + (@chk_default.checked ? '!' : '')
         end
       end
-    elsif !ctrl && !alt && Mouse.button_down?(:left)
-      case @cur_element
-      when :wall
-        set_wall_tile(mp.x, mp.y, true)
-        set_surrounding_wall_tiles(mp.x, mp.y)
-      when :hide
-        @objects[mp.x][mp.y].hide = 'h00'
-      when :tile
-        t = @ddl_tile_type.value
-        prop = t == 'w' || t == 'p' ? :obj= : t == 'b' ? :back= : :fore=
-        @objects[mp.x][mp.y].send(prop, t + '%02d' % @cur_index)
-      when :obj
-        @objects[mp.x][mp.y].obj = '@' + ('%02d' % @cur_index) + (@txt_args.text.empty? ? '' : ":#{@txt_args.text}")
-      when :enemy
-        @objects[mp.x][mp.y].obj = '@' + ('%02d' % @cur_index) + (@txt_args.text.empty? ? '' : ":#{@txt_args.text}")
+    elsif !alt && Mouse.button_down?(:left)
+      if ctrl
+        @objects[mp.x][mp.y].hide = 'h99' if @cur_element == :hide
+      else
+        case @cur_element
+        when :wall
+          set_wall_tile(mp.x, mp.y, true)
+          set_surrounding_wall_tiles(mp.x, mp.y)
+        when :hide
+          @objects[mp.x][mp.y].hide = 'h00'
+        when :tile
+          t = @ddl_tile_type.value
+          prop = t == 'w' || t == 'p' ? :obj= : t == 'b' ? :back= : :fore=
+          @objects[mp.x][mp.y].send(prop, t + '%02d' % @cur_index)
+        when :obj
+          @objects[mp.x][mp.y].obj = '@' + ('%02d' % @cur_index) + (@txt_args.text.empty? ? '' : ":#{@txt_args.text}")
+        when :enemy
+          @objects[mp.x][mp.y].obj = '@' + ('%02d' % @cur_index) + (@txt_args.text.empty? ? '' : ":#{@txt_args.text}")
+        end
       end
     elsif Mouse.button_released?(:left)
       if alt
@@ -747,10 +752,16 @@ class SBEditor < GameWindow
         @tilesets[@cur_tileset][@objects[i][j].fore[1..2].to_i].draw x, y, 0, 2, 2
         @font1.draw 'f', x + 20, y + 8, 1, 2, 2, BLACK if @show_codes
       end
-      draw_quad x, y, HIDE_COLOR,
-                x + 32, y, HIDE_COLOR,
-                x, y + 32, HIDE_COLOR,
-                x + 32, y + 32, HIDE_COLOR, 0 if @objects[i][j].hide
+      if @objects[i][j].hide
+        if @objects[i][j].hide == 'h00'
+          draw_quad x, y, HIDE_COLOR,
+                    x + 32, y, HIDE_COLOR,
+                    x, y + 32, HIDE_COLOR,
+                    x + 32, y + 32, HIDE_COLOR, 0
+        else
+          @fog.draw(x, y, 0, 2, 2)
+        end
+      end
     end
     @ramps.each do |r|
       p = r.split(':')[1].split(',')
