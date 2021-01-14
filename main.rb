@@ -487,7 +487,7 @@ class SBEditor < GameWindow
     mp = @map.get_map_pos(Mouse.x, Mouse.y)
     return if mp.x >= @tiles_x || mp.y >= @tiles_y
     if Mouse.double_click?(:left)
-      check_fill(mp.x, mp.y)
+      check_fill(mp.x, mp.y, ctrl)
     elsif Mouse.button_pressed?(:left)
       if ctrl
         case @cur_element
@@ -693,20 +693,20 @@ class SBEditor < GameWindow
     @tiles_x = tiles_x; @tiles_y = tiles_y
   end
 
-  def check_fill(i, j)
+  def check_fill(i, j, ctrl)
     return unless @cur_element == :wall || @cur_element == :hide || @cur_element == :tile && @ddl_tile_type.value == 'b'
     if @cur_element == :wall
       @objects[i][j].back = 'b11'
       set_surrounding_wall_tiles(i, j)
     elsif @cur_element == :hide
-      @objects[i][j].hide = 'h00'
+      @objects[i][j].hide = ctrl ? 'h99' : 'h00'
     else
       @objects[i][j].back = "b#{@cur_index}"
     end
-    check_fill i - 1, j if i > 0 and cell_empty?(i - 1, j)
-    check_fill i + 1, j if i < @tiles_x - 1 and cell_empty?(i + 1, j)
-    check_fill i, j - 1 if j > 0 and cell_empty?(i, j - 1)
-    check_fill i, j + 1 if j < @tiles_y - 1 and cell_empty?(i, j + 1)
+    check_fill i - 1, j, ctrl if i > 0 and cell_empty?(i - 1, j)
+    check_fill i + 1, j, ctrl if i < @tiles_x - 1 and cell_empty?(i + 1, j)
+    check_fill i, j - 1, ctrl if j > 0 and cell_empty?(i, j - 1)
+    check_fill i, j + 1, ctrl if j < @tiles_y - 1 and cell_empty?(i, j + 1)
   end
 
   def cell_empty?(i, j)
