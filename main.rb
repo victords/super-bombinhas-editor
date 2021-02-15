@@ -94,9 +94,12 @@ class SBEditor < GameWindow
 
     @ramps = []
     @dir = File.expand_path(__FILE__).split('/')[0..-3].join('/') + '/super-bombinhas/data'
-    @font1 = Res.font :minecraftia, 6
-    @font2 = Res.font :minecraftia, 10
-    @text_helper = TextHelper.new(Res.font(:minecraftia, 24), 0)
+    @font = ImageFont.new(:font, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzÁÉÍÓÚÀÃÕÂÊÔÑÇáéíóúàãõâêôñç0123456789.,:;!?¡¿/\\()[]+-%'\"←→∞",
+                          [6, 6, 6, 6, 6, 6, 6, 6, 2, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+                           6, 6, 6, 6, 6, 4, 6, 6, 2, 4, 5, 3, 8, 6, 6, 6, 6, 5, 6, 4, 6, 6, 8, 6, 6, 6,
+                           6, 6, 2, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 2, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+                           6, 4, 6, 6, 6, 6, 6, 6, 6, 6, 2, 3, 2, 3, 2, 6, 2, 6, 5, 5, 3, 3, 3, 3, 6, 4, 6, 2, 4, 8, 8, 9], 11, 3)
+    @text_helper = TextHelper.new(@font, 0)
     @cur_index = -1
 
     bg_files = Dir["#{@dir}/img/bg/*"].sort
@@ -109,7 +112,8 @@ class SBEditor < GameWindow
         bg_options << num
       end
     end
-    @cur_bg = 0
+    bg2_options = ['-'] + bg_options
+    @cur_bg = @cur_bg2 = 0
 
     bgm_options = []
     Dir["#{@dir}/song/s*"].sort.each{ |f| bgm_options << f.split('/')[-1].chomp('.ogg') }
@@ -156,68 +160,77 @@ class SBEditor < GameWindow
     save_confirm = false
 
     @panels = [
-
       ################################## Geral ##################################
-      Panel.new(0, 0, 500, 48, [
-        Label.new(x: 10, y: 0, font: @font2, text: 'W', scale_x: 2, scale_y: 2, anchor: :left),
-        (txt_w = TextField.new(x: 20, y: 0, img: :textField, font: @font2, text: '300', allowed_chars: '0123456789', margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, anchor: :left)),
-        Label.new(x: 70, y: 0, font: @font2, text: 'H', scale_x: 2, scale_y: 2, anchor: :left),
-        (txt_h = TextField.new(x: 86, y: 0, img: :textField, font: @font2, text: '300', allowed_chars: '0123456789', margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, anchor: :left)),
-        Button.new(x: 130, y: 0, img: :btn1, font: @font2, text: 'OK', scale_x: 2, scale_y: 2, anchor: :left) do
+      Panel.new(0, 0, 720, 48, [
+        Label.new(x: 10, y: 0, font: @font, text: 'W', scale_x: 2, scale_y: 2, anchor: :left),
+        (txt_w = TextField.new(x: 20, y: 0, img: :textField, font: @font, text: '300', allowed_chars: '0123456789', margin_x: 2, margin_y: 2, scale_x: 2, scale_y: 2, anchor: :left)),
+        Label.new(x: 70, y: 0, font: @font, text: 'H', scale_x: 2, scale_y: 2, anchor: :left),
+        (txt_h = TextField.new(x: 86, y: 0, img: :textField, font: @font, text: '300', allowed_chars: '0123456789', margin_x: 2, margin_y: 2, scale_x: 2, scale_y: 2, anchor: :left)),
+        Button.new(x: 130, y: 0, img: :btn1, font: @font, text: 'OK', scale_x: 2, scale_y: 2, anchor: :left) do
           reset_map(txt_w.text.to_i, txt_h.text.to_i)
         end,
-        Label.new(x: 180, y: 0, font: @font2, text: 'BG', scale_x: 2, scale_y: 2, anchor: :left),
-        (ddl_bg = DropDownList.new(x: 204, y: 0, font: @font2, img: :ddl, opt_img: :ddlOpt, options: bg_options, text_margin: 4, scale_x: 2, scale_y: 2, anchor: :left) do |_, v|
+        Label.new(x: 200, y: 0, font: @font, text: 'BG', scale_x: 2, scale_y: 2, anchor: :left),
+        (ddl_bg = DropDownList.new(x: 224, y: 0, font: @font, img: :ddl, opt_img: :ddlOpt, options: bg_options, text_margin: 4, scale_x: 2, scale_y: 2, anchor: :left) do |_, v|
           @cur_bg = bg_options.index(v)
         end),
-        Label.new(x: 248, y: 0, font: @font2, text: 'BGM', scale_x: 2, scale_y: 2, anchor: :left),
-        (ddl_bgm = DropDownList.new(x: 284, y: 0, font: @font2, img: :ddl, opt_img: :ddlOpt, options: bgm_options, text_margin: 4, scale_x: 2, scale_y: 2, anchor: :left) do |_, v|
+        Label.new(x: 268, y: -10, font: @font, text: 'tiled', scale_x: 2, scale_y: 2, anchor: :left),
+        (chk_bg_tile = ToggleButton.new(x: 268, y: 10, img: :chk, scale_x: 2, scale_y: 2, checked: true, anchor: :left)),
+        Label.new(x: 318, y: 0, font: @font, text: 'BG2', scale_x: 2, scale_y: 2, anchor: :left),
+        (ddl_bg2 = DropDownList.new(x: 354, y: 0, font: @font, img: :ddl, opt_img: :ddlOpt, options: bg2_options, text_margin: 4, scale_x: 2, scale_y: 2, anchor: :left) do |_, v|
+          @cur_bg2 = bg_options.index(v)
+        end),
+        Label.new(x: 398, y: -10, font: @font, text: 'tiled', scale_x: 2, scale_y: 2, anchor: :left),
+        (chk_bg2_tile = ToggleButton.new(x: 398, y: 10, img: :chk, scale_x: 2, scale_y: 2, checked: true, anchor: :left)),
+        Label.new(x: 450, y: 0, font: @font, text: 'BGM', scale_x: 2, scale_y: 2, anchor: :left),
+        (ddl_bgm = DropDownList.new(x: 486, y: 0, font: @font, img: :ddl, opt_img: :ddlOpt, options: bgm_options, text_margin: 4, scale_x: 2, scale_y: 2, anchor: :left) do |_, v|
           @cur_bgm = bgm_options.index(v)
         end),
-        Label.new(x: 330, y: 0, font: @font2, text: 'Exit', scale_x: 2, scale_y: 2, anchor: :left),
-        (ddl_exit = DropDownList.new(x: 370, y: 0, font: @font2, img: :ddl, opt_img: :ddlOpt, options: exit_options, text_margin: 4, scale_x: 2, scale_y: 2, anchor: :left) do |_, v|
+        Label.new(x: 532, y: 0, font: @font, text: 'Exit', scale_x: 2, scale_y: 2, anchor: :left),
+        (ddl_exit = DropDownList.new(x: 572, y: 0, font: @font, img: :ddl, opt_img: :ddlOpt, options: exit_options, text_margin: 4, scale_x: 2, scale_y: 2, anchor: :left) do |_, v|
           @cur_exit = exit_options.index(v)
         end),
-        Label.new(x: 30, y: 0, font: @font2, text: 'Dark', scale_x: 2, scale_y: 2, anchor: :right),
-        (chk_dark = ToggleButton.new(x: 10, y: 0, img: :chk, scale_x: 2, scale_y: 2, anchor: :right))
+        Label.new(x: 30, y: -10, font: @font, text: 'Dark', scale_x: 2, scale_y: 2, anchor: :right),
+        (chk_dark = ToggleButton.new(x: 10, y: -10, img: :chk, scale_x: 2, scale_y: 2, anchor: :right)),
+        Label.new(x: 30, y: 10, font: @font, text: 'Rain', scale_x: 2, scale_y: 2, anchor: :right),
+        (chk_rain = ToggleButton.new(x: 10, y: 10, img: :chk, scale_x: 2, scale_y: 2, anchor: :right))
       ], :pnl, :tiled, true, 2, 2, :top),
       ###########################################################################
 
       ################################# Tileset #################################
-      Panel.new(0, 0, 48, 300, [
-        (ddl_ts = DropDownList.new(x: 0, y: 4, font: @font2, img: :ddl, opt_img: :ddlOpt, options: ts_options, text_margin: 4, scale_x: 2, scale_y: 2, anchor: :top) do |_, v|
+      Panel.new(0, 0, 68, 300, [
+        (ddl_ts = DropDownList.new(x: 0, y: 4, font: @font, img: :ddl, opt_img: :ddlOpt, options: ts_options, text_margin: 4, scale_x: 2, scale_y: 2, anchor: :top) do |_, v|
           @cur_tileset = ts_options.index(v)
           @floating_panels[0].set_children(@tilesets[@cur_tileset].map.with_index{ |t, i| { img: t, x: 4 + (i % 10) * 33, y: 4 + (i / 10) * 33 } })
         end),
-        Button.new(x: 0, y: 38, img: :btn1, font: @font1, text: 'WALL', scale_x: 2, scale_y: 2, anchor: :top) do
+        Button.new(x: 0, y: 38, img: :btn1, font: @font, text: 'Wall', scale_x: 2, scale_y: 2, anchor: :top) do
           @cur_element = :wall
         end,
-        Button.new(x: 0, y: 38 + 44, img: :btn1, font: @font1, text: 'PASS', scale_x: 2, scale_y: 2, anchor: :top) do
+        Button.new(x: 0, y: 38 + 44, img: :btn1, font: @font, text: 'Pass', scale_x: 2, scale_y: 2, anchor: :top) do
           @cur_element = :pass
         end,
-        Button.new(x: 0, y: 38 + 88, img: :btn1, font: @font1, text: 'HIDE', scale_x: 2, scale_y: 2, anchor: :top) do
+        Button.new(x: 0, y: 38 + 88, img: :btn1, font: @font, text: 'Hide', scale_x: 2, scale_y: 2, anchor: :top) do
           @cur_element = :hide
         end,
-        (ramp_btn = Button.new(x: 0, y: 38 + 132, img: :btn1, font: @font1, text: 'RAMP', scale_x: 2, scale_y: 2, anchor: :top) do
+        (ramp_btn = Button.new(x: 0, y: 38 + 132, img: :btn1, font: @font, text: 'Ramp', scale_x: 2, scale_y: 2, anchor: :top) do
           toggle_floating_panel(1)
         end),
-        (other_tile_btn = Button.new(x: 0, y: 38, img: :btn1, font: @font1, text: 'OTHER', scale_x: 2, scale_y: 2, anchor: :bottom) do
+        (other_tile_btn = Button.new(x: 0, y: 38, img: :btn1, font: @font, text: 'Other', scale_x: 2, scale_y: 2, anchor: :bottom) do
           toggle_floating_panel(0)
         end),
-        (@ddl_tile_type = DropDownList.new(x: 0, y: 4, font: @font2, img: :ddl, opt_img: :ddlOpt, options: %w(w p b f), text_margin: 4, scale_x: 2, scale_y: 2, anchor: :bottom)),
+        (@ddl_tile_type = DropDownList.new(x: 0, y: 4, font: @font, img: :ddl, opt_img: :ddlOpt, options: %w(w p b f), text_margin: 4, scale_x: 2, scale_y: 2, anchor: :bottom)),
       ], :pnl, :tiled, true, 2, 2, :left),
       ###########################################################################
 
       ################################# Arquivo #################################
-      Panel.new(0, 0, 460, 48, [
-        Label.new(x: 7, y: 0, font: @font2, text: 'World', scale_x: 2, scale_y: 2, anchor: :left),
-        (txt_world = TextField.new(x: 57, y: 0, font: @font2, img: :textField, margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, text: '1', anchor: :left)),
-        Label.new(x: 107, y: 0, font: @font2, text: 'Stage', scale_x: 2, scale_y: 2, anchor: :left),
-        (txt_stage = TextField.new(x: 157, y: 0, font: @font2, img: :textField, margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, text: '1', anchor: :left)),
-        Label.new(x: 207, y: 0, font: @font2, text: 'Section', scale_x: 2, scale_y: 2, anchor: :left),
-        (txt_section = TextField.new(x: 277, y: 0, font: @font2, img: :textField, margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, text: '1', anchor: :left)),
-        (lbl_conf_save = Label.new(x: 0, y: 50, font: @font2, text: 'Salvar por cima?', scale_x: 2, scale_y: 2, anchor: :bottom)),
-        Button.new(x: 92, y: 0, img: :btn1, font: @font1, text: 'clear', scale_x: 2, scale_y: 2, anchor: :right) do
+      Panel.new(0, 0, 520, 48, [
+        Label.new(x: 7, y: 0, font: @font, text: 'World', scale_x: 2, scale_y: 2, anchor: :left),
+        (txt_world = TextField.new(x: 57, y: 0, font: @font, img: :textField, margin_x: 2, margin_y: 2, scale_x: 2, scale_y: 2, text: '1', anchor: :left)),
+        Label.new(x: 107, y: 0, font: @font, text: 'Stage', scale_x: 2, scale_y: 2, anchor: :left),
+        (txt_stage = TextField.new(x: 157, y: 0, font: @font, img: :textField, margin_x: 2, margin_y: 2, scale_x: 2, scale_y: 2, text: '1', anchor: :left)),
+        Label.new(x: 207, y: 0, font: @font, text: 'Section', scale_x: 2, scale_y: 2, anchor: :left),
+        (txt_section = TextField.new(x: 277, y: 0, font: @font, img: :textField, margin_x: 2, margin_y: 2, scale_x: 2, scale_y: 2, text: '1', anchor: :left)),
+        (lbl_conf_save = Label.new(x: 0, y: 50, font: @font, text: 'Salvar por cima?', scale_x: 2, scale_y: 2, anchor: :bottom)),
+        Button.new(x: 132, y: 0, img: :btn1, font: @font, text: 'Clear', scale_x: 2, scale_y: 2, anchor: :right) do
           @objects = Array.new(@tiles_x) {
             Array.new(@tiles_y) {
               Cell.new
@@ -225,7 +238,7 @@ class SBEditor < GameWindow
           }
           @ramps.clear
         end,
-        Button.new(x: 48, y: 0, img: :btn1, font: @font1, text: 'LOAD', scale_x: 2, scale_y: 2, anchor: :right) do
+        Button.new(x: 68, y: 0, img: :btn1, font: @font, text: 'Load', scale_x: 2, scale_y: 2, anchor: :right) do
           path = "#{@dir}/stage/#{txt_world.text}/#{txt_stage.text}-#{txt_section.text}"
           if File.exist? path
             f = File.open(path)
@@ -243,14 +256,34 @@ class SBEditor < GameWindow
             @cur_exit = infos[2].to_i
             ddl_exit.value = exit_options[@cur_exit]
 
-            ddl_bg.value = bg_infos[0]
+            if bg_infos[0].end_with?('!')
+              ddl_bg.value = bg_infos[0][0..-2]
+              chk_bg_tile.checked = false
+            else
+              ddl_bg.value = bg_infos[0]
+              chk_bg_tile.checked = true
+            end
             @cur_bg = bg_options.index(ddl_bg.value)
+            if bg_infos[1]
+              if bg_infos[1].end_with?('!')
+                ddl_bg2.value = bg_infos[1][0..-2]
+                chk_bg2_tile.checked = false
+              else
+                ddl_bg2.value = bg_infos[1]
+                chk_bg2_tile.checked = true
+              end
+              @cur_bg2 = bg_options.index(ddl_bg2.value)
+            else
+              ddl_bg2.value = '-'
+              @cur_bg2 = nil
+            end
             ddl_ts.value = infos[3]
             @cur_tileset = ts_options.index(ddl_ts.value)
             ddl_bgm.value = infos[4]
             @cur_bgm = bgm_options.index(ddl_bgm.value)
 
-            chk_dark.checked = infos.length > 5
+            chk_dark.checked = infos[5] && infos[5] == '.'
+            chk_rain.checked = infos[5] && infos[5] == '$'
 
             i = 0; j = 0
             elms.each do |e|
@@ -293,7 +326,7 @@ class SBEditor < GameWindow
             @ramps = all[3].split(';') if all[3]
           end
         end,
-        Button.new(x: 4, y: 0, img: :btn1, font: @font1, text: 'SAVE', scale_x: 2, scale_y: 2, anchor: :right) do
+        Button.new(x: 4, y: 0, img: :btn1, font: @font, text: 'Save', scale_x: 2, scale_y: 2, anchor: :right) do
           path = "#{@dir}/stage/#{txt_world.text}/#{txt_stage.text}-#{txt_section.text}"
           will_save = if save_confirm
                         save_confirm = lbl_conf_save.visible = false
@@ -306,7 +339,10 @@ class SBEditor < GameWindow
                         true
                       end
           if will_save
-            code = "#{@tiles_x},#{@tiles_y},#{@cur_exit},#{ddl_ts.value},#{ddl_bgm.value}#{chk_dark.checked ? ',.' : ''}##{ddl_bg.value}#"
+            code = "#{@tiles_x},#{@tiles_y},#{@cur_exit},#{ddl_ts.value},#{ddl_bgm.value}#{chk_dark.checked ? ',.' : chk_rain.checked ? ',$' : ''}#"
+            code += "#{ddl_bg.value}#{chk_bg_tile.checked ? '' : '!'}"
+            code += ",#{ddl_bg2.value}#{chk_bg2_tile.checked ? '' : '!'}" if ddl_bg2.value != '-'
+            code += '#'
 
             count = 1
             last_element = get_cell_string(0, 0)
@@ -349,22 +385,22 @@ class SBEditor < GameWindow
       ###########################################################################
 
       ################################ Elementos ################################
-      Panel.new(0, 0, 48, 300, [
-        Button.new(x: 0, y: 4, img: :btn1, font: @font1, text: 'BOMB', scale_x: 2, scale_y: 2, anchor: :top) do
+      Panel.new(0, 0, 68, 300, [
+        Button.new(x: 0, y: 4, img: :btn1, font: @font, text: 'BOMB', scale_x: 2, scale_y: 2, anchor: :top) do
           @cur_element = :bomb
         end,
-        Label.new(x: 0, y: 48, font: @font1, text: 'Default', scale_x: 2, scale_y: 2, anchor: :top),
+        Label.new(x: 0, y: 48, font: @font, text: 'Default', scale_x: 1, scale_y: 1, anchor: :top),
         (@chk_default = ToggleButton.new(x: 0, y: 60, img: :chk, checked: true, scale_x: 2, scale_y: 2, anchor: :top)),
-        (btn_obj = Button.new(x: 0, y: 100, img: :btn1, font: @font1, text: 'OBJ.', scale_x: 2, scale_y: 2, anchor: :top) do
+        (btn_obj = Button.new(x: 0, y: 100, img: :btn1, font: @font, text: 'obj', scale_x: 2, scale_y: 2, anchor: :top) do
           toggle_floating_panel(2)
         end),
-        (btn_enemy = Button.new(x: 0, y: 144, img: :btn1, font: @font1, text: 'ENEMY', scale_x: 2, scale_y: 2, anchor: :top) do
+        (btn_enemy = Button.new(x: 0, y: 144, img: :btn1, font: @font, text: 'enmy', scale_x: 2, scale_y: 2, anchor: :top) do
           toggle_floating_panel(3)
         end),
-        Button.new(x: 0, y: 188, img: :btn1, font: @font1, text: 'ARGS...', scale_x: 2, scale_y: 2, anchor: :top) do
+        Button.new(x: 0, y: 188, img: :btn1, font: @font, text: 'args', scale_x: 2, scale_y: 2, anchor: :top) do
           toggle_args_panel
         end,
-        Button.new(x: 0, y: 4, img: :btn1, font: @font1, text: 'offset', scale_x: 2, scale_y: 2, anchor: :bottom) do
+        Button.new(x: 0, y: 4, img: :btn1, font: @font, text: 'offst', scale_x: 2, scale_y: 2, anchor: :bottom) do
           toggle_offset_panel
         end
       ], :pnl, :tiled, true, 2, 2, :right),
@@ -372,19 +408,19 @@ class SBEditor < GameWindow
 
       ################################ Argumentos ###############################
       Panel.new(0, 0, 200, 70, [
-        Label.new(x: 0, y: 4, font: @font2, text: 'Arguments:', scale_x: 2, scale_y: 2, anchor: :top),
-        (@txt_args = TextField.new(x: 0, y: 30, img: :textField2, font: @font2, margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, anchor: :top, max_length: 500))
+        Label.new(x: 0, y: 4, font: @font, text: 'Arguments:', scale_x: 2, scale_y: 2, anchor: :top),
+        (@txt_args = TextField.new(x: 0, y: 30, img: :textField2, font: @font, margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, anchor: :top, max_length: 500))
       ], :pnl, :tiled, true, 2, 2, :center),
       ###########################################################################
 
       ################################## Offset #################################
       Panel.new(0, 0, 200, 70, [
-        Label.new(x: 0, y: 4, font: @font2, text: 'Offset', scale_x: 2, scale_y: 2, anchor: :top),
-        Label.new(x: 4, y: 7, font: @font2, text: 'X', scale_x: 2, scale_y: 2, anchor: :left),
-        (@txt_offset_x = TextField.new(x: 34, y: 7, img: :textField, font: @font2, margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, anchor: :left)),
-        Label.new(x: 79, y: 7, font: @font2, text: 'Y', scale_x: 2, scale_y: 2, anchor: :left),
-        (@txt_offset_y = TextField.new(x: 109, y: 7, img: :textField, font: @font2, margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, anchor: :left)),
-        Button.new(x: 4, y: 7, img: :btn1, font: @font2, text: 'OK', scale_x: 2, scale_y: 2, anchor: :right) do
+        Label.new(x: 0, y: 4, font: @font, text: 'Offset', scale_x: 2, scale_y: 2, anchor: :top),
+        Label.new(x: 4, y: 7, font: @font, text: 'X', scale_x: 2, scale_y: 2, anchor: :left),
+        (@txt_offset_x = TextField.new(x: 34, y: 7, img: :textField, font: @font, margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, anchor: :left)),
+        Label.new(x: 79, y: 7, font: @font, text: 'Y', scale_x: 2, scale_y: 2, anchor: :left),
+        (@txt_offset_y = TextField.new(x: 109, y: 7, img: :textField, font: @font, margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, anchor: :left)),
+        Button.new(x: 4, y: 7, img: :btn1, font: @font, text: 'OK', scale_x: 2, scale_y: 2, anchor: :right) do
           o_x = @txt_offset_x.text.to_i
           o_y = @txt_offset_y.text.to_i
           start_x = @selection ? @selection[0] : 0
@@ -412,7 +448,6 @@ class SBEditor < GameWindow
         end
       ], :pnl, :tiled, true, 2, 2, :center)
       ###########################################################################
-
     ]
 
     @panels[4].visible = @panels[5].visible = lbl_conf_save.visible = false
@@ -737,6 +772,18 @@ class SBEditor < GameWindow
       end
       bgx += 2 * bg.width
     end
+    if @cur_bg2
+      bg = @bgs[@cur_bg2]
+      bgx = 0
+      while bgx < @scr_w
+        bgy = 0
+        while bgy < @scr_h
+          bg.draw(bgx, bgy, 0, 2, 2)
+          bgy += 2 * bg.height
+        end
+        bgx += 2 * bg.width
+      end
+    end
 
     @map.foreach do |i, j, x, y|
       draw_quad x + 1, y + 1, NULL_COLOR,
@@ -745,12 +792,12 @@ class SBEditor < GameWindow
                 x + 31, y + 31, NULL_COLOR, 0
       if @objects[i][j].back
         @tilesets[@cur_tileset][@objects[i][j].back[1..2].to_i].draw x, y, 0, 2, 2
-        @font1.draw 'b', x + 20, y + 18, 1, 2, 2, BLACK if @show_codes
+        @font.draw_text 'b', x + 20, y + 18, 1, 1, 1, BLACK if @show_codes
       end
       draw_object i, j, x, y
       if @objects[i][j].fore
         @tilesets[@cur_tileset][@objects[i][j].fore[1..2].to_i].draw x, y, 0, 2, 2
-        @font1.draw 'f', x + 20, y + 8, 1, 2, 2, BLACK if @show_codes
+        @font.draw_text 'f', x + 20, y + 8, 1, 1, 1, BLACK if @show_codes
       end
       if @objects[i][j].hide
         if @objects[i][j].hide == 'h00'
@@ -792,7 +839,7 @@ class SBEditor < GameWindow
 
     unless @over_panel.any?
       p = @map.get_map_pos(Mouse.x, Mouse.y)
-      @font2.draw "#{p.x}, #{p.y}", Mouse.x, Mouse.y - 15, 1, 2, 2, BLACK
+      @font.draw_text "#{p.x}, #{p.y}", Mouse.x, Mouse.y - 15, 1, 2, 2, BLACK
     end
   end
 
@@ -801,16 +848,16 @@ class SBEditor < GameWindow
     if obj
       if obj[0] == 'w' || obj[0] == 'p'
         @tilesets[@cur_tileset][obj[1..2].to_i].draw x, y, 0, 2, 2
-        @font1.draw obj[0], x + 20, y - 2, 1, 2, 2, BLACK if @show_codes
+        @font.draw_text obj[0], x + 20, y - 2, 1, 1, 1, BLACK if @show_codes
       elsif obj[0] == '!'
         @bomb.draw x, y, 0, 2, 2
-        @font1.draw obj[1..-1], x, y, 0, 2, 2, BLACK if @show_codes
+        @font.draw_text obj[1..-1], x, y, 0, 1, 1, BLACK if @show_codes
       else
         code = obj[1..-1].split(':')
         @elements[code[0].to_i].draw x, y, 0, 2, 2
         if @show_codes && code.size > 1
           code[1..-1].each_with_index do |c, i|
-            @font1.draw c, x, y + i * 9, 0, 2, 2, BLACK
+            @font.draw_text c, x, y + i * 9, 0, 1, 1, BLACK
           end
         end
       end
