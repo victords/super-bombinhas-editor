@@ -99,7 +99,7 @@ class SBEditor < GameWindow
                            6, 6, 6, 6, 6, 4, 6, 6, 2, 4, 5, 3, 8, 6, 6, 6, 6, 5, 6, 4, 6, 6, 8, 6, 6, 6,
                            6, 6, 2, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 2, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
                            6, 4, 6, 6, 6, 6, 6, 6, 6, 6, 2, 3, 2, 3, 2, 6, 2, 6, 5, 5, 3, 3, 3, 3, 6, 4, 6, 2, 4, 8, 8, 9], 11, 3)
-    @text_helper = TextHelper.new(@font, 0)
+    @text_helper = TextHelper.new(@font, 0, 2, 2)
     @cur_index = -1
 
     bg_files = Dir["#{@dir}/img/bg/*"].sort
@@ -116,10 +116,10 @@ class SBEditor < GameWindow
     @cur_bg = @cur_bg2 = 0
 
     bgm_options = []
-    Dir["#{@dir}/song/s*"].sort.each{ |f| bgm_options << f.split('/')[-1].chomp('.ogg') }
+    Dir["#{@dir}/song/s*"].sort.select{ |f| !f.include?('-intro') }.each{ |f| bgm_options << f.split('/')[-1].chomp('.ogg') }
     @cur_bgm = 0
 
-    exit_options = %w(/\\ > \\/ < -)
+    exit_options = %w(/\\ → \\/ ← -)
 
     ts_files = Dir["#{@dir}/tileset/*.png"].sort
     @tilesets = []
@@ -160,12 +160,12 @@ class SBEditor < GameWindow
     save_confirm = false
 
     @panels = [
-      ################################## Geral ##################################
+      ################################## General ##################################
       Panel.new(0, 0, 720, 48, [
         Label.new(x: 10, y: 0, font: @font, text: 'W', scale_x: 2, scale_y: 2, anchor: :left),
-        (txt_w = TextField.new(x: 20, y: 0, img: :textField, font: @font, text: '300', allowed_chars: '0123456789', margin_x: 2, margin_y: 2, scale_x: 2, scale_y: 2, anchor: :left)),
+        (txt_w = TextField.new(x: 22, y: 0, img: :textField, font: @font, text: '300', allowed_chars: '0123456789', margin_x: 2, margin_y: 2, scale_x: 2, scale_y: 2, anchor: :left)),
         Label.new(x: 70, y: 0, font: @font, text: 'H', scale_x: 2, scale_y: 2, anchor: :left),
-        (txt_h = TextField.new(x: 86, y: 0, img: :textField, font: @font, text: '300', allowed_chars: '0123456789', margin_x: 2, margin_y: 2, scale_x: 2, scale_y: 2, anchor: :left)),
+        (txt_h = TextField.new(x: 84, y: 0, img: :textField, font: @font, text: '300', allowed_chars: '0123456789', margin_x: 2, margin_y: 2, scale_x: 2, scale_y: 2, anchor: :left)),
         Button.new(x: 130, y: 0, img: :btn1, font: @font, text: 'OK', scale_x: 2, scale_y: 2, anchor: :left) do
           reset_map(txt_w.text.to_i, txt_h.text.to_i)
         end,
@@ -174,13 +174,13 @@ class SBEditor < GameWindow
           @cur_bg = bg_options.index(v)
         end),
         Label.new(x: 268, y: -10, font: @font, text: 'tiled', scale_x: 2, scale_y: 2, anchor: :left),
-        (chk_bg_tile = ToggleButton.new(x: 268, y: 10, img: :chk, scale_x: 2, scale_y: 2, checked: true, anchor: :left)),
+        (chk_bg_tile = ToggleButton.new(x: 268, y: 10, img: :chk, scale_x: 2, scale_y: 2, anchor: :left)),
         Label.new(x: 318, y: 0, font: @font, text: 'BG2', scale_x: 2, scale_y: 2, anchor: :left),
         (ddl_bg2 = DropDownList.new(x: 354, y: 0, font: @font, img: :ddl, opt_img: :ddlOpt, options: bg2_options, text_margin: 4, scale_x: 2, scale_y: 2, anchor: :left) do |_, v|
           @cur_bg2 = bg_options.index(v)
         end),
         Label.new(x: 398, y: -10, font: @font, text: 'tiled', scale_x: 2, scale_y: 2, anchor: :left),
-        (chk_bg2_tile = ToggleButton.new(x: 398, y: 10, img: :chk, scale_x: 2, scale_y: 2, checked: true, anchor: :left)),
+        (chk_bg2_tile = ToggleButton.new(x: 398, y: 10, img: :chk, scale_x: 2, scale_y: 2, anchor: :left)),
         Label.new(x: 450, y: 0, font: @font, text: 'BGM', scale_x: 2, scale_y: 2, anchor: :left),
         (ddl_bgm = DropDownList.new(x: 486, y: 0, font: @font, img: :ddl, opt_img: :ddlOpt, options: bgm_options, text_margin: 4, scale_x: 2, scale_y: 2, anchor: :left) do |_, v|
           @cur_bgm = bgm_options.index(v)
@@ -221,15 +221,15 @@ class SBEditor < GameWindow
       ], :pnl, :tiled, true, 2, 2, :left),
       ###########################################################################
 
-      ################################# Arquivo #################################
+      ################################### File ##################################
       Panel.new(0, 0, 520, 48, [
         Label.new(x: 7, y: 0, font: @font, text: 'World', scale_x: 2, scale_y: 2, anchor: :left),
-        (txt_world = TextField.new(x: 57, y: 0, font: @font, img: :textField, margin_x: 2, margin_y: 2, scale_x: 2, scale_y: 2, text: '1', anchor: :left)),
+        (txt_world = TextField.new(x: 59, y: 0, font: @font, img: :textField, margin_x: 2, margin_y: 2, scale_x: 2, scale_y: 2, text: '1', anchor: :left)),
         Label.new(x: 107, y: 0, font: @font, text: 'Stage', scale_x: 2, scale_y: 2, anchor: :left),
-        (txt_stage = TextField.new(x: 157, y: 0, font: @font, img: :textField, margin_x: 2, margin_y: 2, scale_x: 2, scale_y: 2, text: '1', anchor: :left)),
+        (txt_stage = TextField.new(x: 161, y: 0, font: @font, img: :textField, margin_x: 2, margin_y: 2, scale_x: 2, scale_y: 2, text: '1', anchor: :left)),
         Label.new(x: 207, y: 0, font: @font, text: 'Section', scale_x: 2, scale_y: 2, anchor: :left),
-        (txt_section = TextField.new(x: 277, y: 0, font: @font, img: :textField, margin_x: 2, margin_y: 2, scale_x: 2, scale_y: 2, text: '1', anchor: :left)),
-        (lbl_conf_save = Label.new(x: 0, y: 50, font: @font, text: 'Salvar por cima?', scale_x: 2, scale_y: 2, anchor: :bottom)),
+        (txt_section = TextField.new(x: 279, y: 0, font: @font, img: :textField, margin_x: 2, margin_y: 2, scale_x: 2, scale_y: 2, text: '1', anchor: :left)),
+        (lbl_conf_save = Label.new(x: 0, y: 50, font: @font, text: 'Overwrite?', scale_x: 2, scale_y: 2, anchor: :bottom)),
         Button.new(x: 132, y: 0, img: :btn1, font: @font, text: 'Clear', scale_x: 2, scale_y: 2, anchor: :right) do
           @objects = Array.new(@tiles_x) {
             Array.new(@tiles_y) {
@@ -384,7 +384,7 @@ class SBEditor < GameWindow
       ], :pnl, :tiled, true, 2, 2, :bottom),
       ###########################################################################
 
-      ################################ Elementos ################################
+      ################################# Elements ################################
       Panel.new(0, 0, 68, 300, [
         Button.new(x: 0, y: 4, img: :btn1, font: @font, text: 'BOMB', scale_x: 2, scale_y: 2, anchor: :top) do
           @cur_element = :bomb
@@ -406,7 +406,7 @@ class SBEditor < GameWindow
       ], :pnl, :tiled, true, 2, 2, :right),
       ###########################################################################
 
-      ################################ Argumentos ###############################
+      ################################# Arguments ###############################
       Panel.new(0, 0, 200, 70, [
         Label.new(x: 0, y: 4, font: @font, text: 'Arguments:', scale_x: 2, scale_y: 2, anchor: :top),
         (@txt_args = TextField.new(x: 0, y: 30, img: :textField2, font: @font, margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, anchor: :top, max_length: 500))
@@ -416,10 +416,10 @@ class SBEditor < GameWindow
       ################################## Offset #################################
       Panel.new(0, 0, 200, 70, [
         Label.new(x: 0, y: 4, font: @font, text: 'Offset', scale_x: 2, scale_y: 2, anchor: :top),
-        Label.new(x: 4, y: 7, font: @font, text: 'X', scale_x: 2, scale_y: 2, anchor: :left),
-        (@txt_offset_x = TextField.new(x: 34, y: 7, img: :textField, font: @font, margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, anchor: :left)),
-        Label.new(x: 79, y: 7, font: @font, text: 'Y', scale_x: 2, scale_y: 2, anchor: :left),
-        (@txt_offset_y = TextField.new(x: 109, y: 7, img: :textField, font: @font, margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, anchor: :left)),
+        Label.new(x: 6, y: 7, font: @font, text: 'X', scale_x: 2, scale_y: 2, anchor: :left),
+        (@txt_offset_x = TextField.new(x: 22, y: 7, img: :textField, font: @font, margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, anchor: :left)),
+        Label.new(x: 66, y: 7, font: @font, text: 'Y', scale_x: 2, scale_y: 2, anchor: :left),
+        (@txt_offset_y = TextField.new(x: 82, y: 7, img: :textField, font: @font, margin_x: 2, margin_y: 3, scale_x: 2, scale_y: 2, anchor: :left)),
         Button.new(x: 4, y: 7, img: :btn1, font: @font, text: 'OK', scale_x: 2, scale_y: 2, anchor: :right) do
           o_x = @txt_offset_x.text.to_i
           o_y = @txt_offset_y.text.to_i
