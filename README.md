@@ -137,5 +137,6 @@ even cause the game to crash.
 ## Contributing
 
 Feel free to fork the project and send pull requests if you want to contribute with
-the code. Also, you can support my work by donating bitcoins to this wallet:
-bc1qvypzxnvtp2wzx8l5ecm0u6e7wshjxznzh0440c
+the code. Also, you can support my work by purchasing Super Bombinhas on
+[Steam](https://store.steampowered.com/app/1553840) or
+[itch.io](https://victords.itch.io/super-bombinhas).
